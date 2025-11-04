@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduVerse - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="components/navbar.js"></script>
+    <script src="components/sidebar.js"></script>
+</head>
+<body class="bg-gray-50 font-sans">
+<!-- Navbar Component -->
+<custom-navbar></custom-navbar>
+
+<!-- Sidebar Component -->
+<custom-sidebar></custom-sidebar>
+
+<!-- Main Content -->
+<main class="ml-0 md:ml-64 pt-16 min-h-screen transition-all duration-300">
+    <div class="p-6">
+        <!-- Welcome Banner -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl p-6 mb-6 shadow-md">
+            <h1 class="text-2xl md:text-3xl font-bold mb-2">Welcome back, Peter Anteater! 🐜</h1>
+            <p class="text-blue-100">You have 5 assignments due this week</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column - Courses -->
+            <div class="lg:col-span-2">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">My Courses - Fall 2025</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Course Card 1 -->
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105 hover:shadow-lg cursor-pointer">
+                        <div class="h-32 bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white flex flex-col justify-between">
+                            <div class="text-sm opacity-90">ICS 31</div>
+                            <div class="text-lg font-semibold">Introduction to Programming</div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span class="flex items-center"><i data-feather="edit-3" class="w-4 h-4 mr-1"></i> 3 assignments</span>
+                                <span>Prof. Pattis</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Course Card 2 -->
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105 hover:shadow-lg cursor-pointer">
+                        <div class="h-32 bg-gradient-to-r from-green-500 to-green-600 p-4 text-white flex flex-col justify-between">
+                            <div class="text-sm opacity-90">MATH 2D</div>
+                            <div class="text-lg font-semibold">Multivariable Calculus</div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span class="flex items-center"><i data-feather="edit-3" class="w-4 h-4 mr-1"></i> 2 assignments</span>
+                                <span>Prof. Smith</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Course Card 3 -->
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105 hover:shadow-lg cursor-pointer">
+                        <div class="h-32 bg-gradient-to-r from-orange-500 to-orange-600 p-4 text-white flex flex-col justify-between">
+                            <div class="text-sm opacity-90">WRITING 39B</div>
+                            <div class="text-lg font-semibold">Critical Reading & Rhetoric</div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span class="flex items-center"><i data-feather="edit-3" class="w-4 h-4 mr-1"></i> 1 assignment</span>
+                                <span>Prof. Johnson</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Course Card 4 -->
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105 hover:shadow-lg cursor-pointer">
+                        <div class="h-32 bg-gradient-to-r from-purple-500 to-purple-600 p-4 text-white flex flex-col justify-between">
+                            <div class="text-sm opacity-90">ICS 6B</div>
+                            <div class="text-lg font-semibold">Boolean Algebra & Logic</div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span class="flex items-center"><i data-feather="edit-3" class="w-4 h-4 mr-1"></i> 2 assignments</span>
+                                <span>Prof. Klefstad</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Course Card 5 -->
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105 hover:shadow-lg cursor-pointer">
+                        <div class="h-32 bg-gradient-to-r from-red-500 to-red-600 p-4 text-white flex flex-col justify-between">
+                            <div class="text-sm opacity-90">PHYSICS 7C</div>
+                            <div class="text-lg font-semibold">Classical Mechanics</div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span class="flex items-center"><i data-feather="edit-3" class="w-4 h-4 mr-1"></i> 1 assignment</span>
+                                <span>Prof. Davis</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Course Card 6 -->
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105 hover:shadow-lg cursor-pointer">
+                        <div class="h-32 bg-gradient-to-r from-teal-500 to-teal-600 p-4 text-white flex flex-col justify-between">
+                            <div class="text-sm opacity-90">HUMCORE 1A</div>
+                            <div class="text-lg font-semibold">Humanities Core Course</div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span class="flex items-center"><i data-feather="edit-3" class="w-4 h-4 mr-1"></i> 4 assignments</span>
+                                <span>Prof. Williams</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Widgets -->
+            <div class="space-y-6">
+                <!-- To-Do Widget -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center mb-4">
+                        <i data-feather="check-square" class="text-blue-500 mr-2"></i>
+                        <h3 class="text-lg font-semibold text-gray-700">To Do</h3>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="border-b border-gray-100 pb-4">
+                            <div class="text-xs font-semibold text-blue-500 mb-1">ICS 31</div>
+                            <div class="text-sm text-gray-700 mb-1">Assignment 3: Lists and Tuples</div>
+                            <div class="text-xs text-red-500">Due: Nov 5 at 11:59pm</div>
+                        </div>
+
+                        <div class="border-b border-gray-100 pb-4">
+                            <div class="text-xs font-semibold text-blue-500 mb-1">MATH 2D</div>
+                            <div class="text-sm text-gray-700 mb-1">Homework 7: Double Integrals</div>
+                            <div class="text-xs text-red-500">Due: Nov 6 at 11:59pm</div>
+                        </div>
+
+                        <div class="pb-2">
+                            <div class="text-xs font-semibold text-blue-500 mb-1">WRITING 39B</div>
+                            <div class="text-sm text-gray-700 mb-1">Essay Draft 2</div>
+                            <div class="text-xs text-red-500">Due: Nov 8 at 11:59pm</div>
+                        </div>
+                    </div>
+
+                    <a href="#" class="block text-center text-blue-500 text-sm mt-4 hover:underline">View All</a>
+                </div>
+
+                <!-- Announcements Widget -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center mb-4">
+                        <i data-feather="megaphone" class="text-blue-500 mr-2"></i>
+                        <h3 class="text-lg font-semibold text-gray-700">Recent Announcements</h3>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="border-b border-gray-100 pb-4">
+                            <div class="text-sm font-semibold text-blue-500 mb-1">Midterm Exam Schedule</div>
+                            <div class="text-xs text-gray-500">ICS 31 - 2 hours ago</div>
+                        </div>
+
+                        <div class="border-b border-gray-100 pb-4">
+                            <div class="text-sm font-semibold text-blue-500 mb-1">Office Hours Update</div>
+                            <div class="text-xs text-gray-500">MATH 2D - 5 hours ago</div>
+                        </div>
+
+                        <div class="pb-2">
+                            <div class="text-sm font-semibold text-blue-500 mb-1">Guest Lecture This Week</div>
+                            <div class="text-xs text-gray-500">HUMCORE 1A - 1 day ago</div>
+                        </div>
+                    </div>
+
+                    <a href="#" class="block text-center text-blue-500 text-sm mt-4 hover:underline">View All</a>
+                </div>
+
+                <!-- Calendar Widget -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center mb-4">
+                        <i data-feather="calendar" class="text-blue-500 mr-2"></i>
+                        <h3 class="text-lg font-semibold text-gray-700">November 2025</h3>
+                    </div>
+
+                    <div class="grid grid-cols-7 gap-1 text-center">
+                        <div class="text-xs font-semibold text-gray-500 py-2">S</div>
+                        <div class="text-xs font-semibold text-gray-500 py-2">M</div>
+                        <div class="text-xs font-semibold text-gray-500 py-2">T</div>
+                        <div class="text-xs font-semibold text-gray-500 py-2">W</div>
+                        <div class="text-xs font-semibold text-gray-500 py-2">T</div>
+                        <div class="text-xs font-semibold text-gray-500 py-2">F</div>
+                        <div class="text-xs font-semibold text-gray-500 py-2">S</div>
+
+                        <div class="py-2"></div>
+                        <div class="py-2"></div>
+                        <div class="py-2"></div>
+                        <div class="py-2"></div>
+                        <div class="py-2"></div>
+                        <div class="py-2"></div>
+                        <div class="py-2 text-sm">1</div>
+
+                        <div class="py-2 text-sm bg-blue-500 text-white rounded-full">2</div>
+                        <div class="py-2 text-sm">3</div>
+                        <div class="py-2 text-sm">4</div>
+                        <div class="py-2 text-sm bg-yellow-100 rounded-full">5</div>
+                        <div class="py-2 text-sm bg-yellow-100 rounded-full">6</div>
+                        <div class="py-2 text-sm">7</div>
+                        <div class="py-2 text-sm bg-yellow-100 rounded-full">8</div>
+
+                        <div class="py-2 text-sm">9</div>
+                        <div class="py-2 text-sm">10</div>
+                        <div class="py-2 text-sm">11</div>
+                        <div class="py-2 text-sm">12</div>
+                        <div class="py-2 text-sm">13</div>
+                        <div class="py-2 text-sm">14</div>
+                        <div class="py-2 text-sm">15</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="script.js"></script>
+<script>
+    feather.replace();
+
+    // Mobile sidebar toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.querySelector('custom-sidebar');
+        const mainContent = document.querySelector('main');
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebar.classList.toggle('md:translate-x-0');
+                mainContent.classList.toggle('ml-64');
+            });
+        }
+
+        // Course card click handler
+        document.querySelectorAll('.course-card').forEach(card => {
+            card.addEventListener('click', function() {
+                alert('This would navigate to the course page in a real LMS!');
+            });
+        });
+    });
+</script>
+<script src="https://huggingface.co/deepsite/deepsite-badge.js"></script>
+</body>
+</html>
