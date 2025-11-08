@@ -670,6 +670,106 @@ class ViewRenderer {
         `;
     }
 
+    /**
+     * Renders the All Courses page
+     */
+    renderCoursesPage() {
+        const { courses } = stateManager.getState();
+
+        this.appContainer.innerHTML = `
+        <div class="p-6 fade-in">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">All Courses</h1>
+
+            <!-- Filters -->
+            <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Search -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                        <input 
+                            type="text" 
+                            id="course-search" 
+                            placeholder="Search by course name or code..." 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                    </div>
+
+                    <!-- Term Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Term</label>
+                        <select 
+                            id="course-term-filter"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="">All Terms</option>
+                            <option value="Fall 2025">Fall 2025</option>
+                            <option value="Spring 2025">Spring 2025</option>
+                        </select>
+                    </div>
+
+                    <!-- Department Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                        <select 
+                            id="course-department-filter"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="">All Departments</option>
+                            ${[...new Set(courses.map(c => c.code.split(' ')[0]))]
+            .map(dept => `<option value="${dept}">${dept}</option>`)
+            .join('')}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="courses-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                ${renderCourses(courses)}
+            </div>
+        </div>
+    `;
+
+        this.attachCourseCardListeners();
+        this.setupCoursesPageFilters();
+    }
+
+    /**
+     * Setup filters for the Courses page
+     */
+    setupCoursesPageFilters() {
+        const searchInput = document.getElementById('course-search');
+        const termSelect = document.getElementById('course-term-filter');
+        const deptSelect = document.getElementById('course-department-filter');
+        const container = document.getElementById('courses-list');
+
+        const applyFilters = () => {
+            const { courses } = stateManager.getState();
+            const search = searchInput.value.toLowerCase();
+            const term = termSelect.value;
+            const dept = deptSelect.value;
+
+            const filtered = courses.filter(c => {
+                const matchesSearch =
+                    c.name.toLowerCase().includes(search) ||
+                    c.code.toLowerCase().includes(search);
+
+                const matchesTerm = term ? c.term === term : true;
+                const matchesDept = dept ? c.code.startsWith(dept) : true;
+
+                return matchesSearch && matchesTerm && matchesDept;
+            });
+
+            container.innerHTML = renderCourses(filtered);
+            this.attachCourseCardListeners();
+        };
+
+        searchInput.addEventListener('input', applyFilters);
+        termSelect.addEventListener('change', applyFilters);
+        deptSelect.addEventListener('change', applyFilters);
+    }
+
+
     /* --------------------------------- Misc -------------------------------- */
 
     render404() {
@@ -771,7 +871,7 @@ class SPAApp {
         this.router.register('/course/:id', (params) => this.renderer.renderCourse(params));
 
         // Other pages (coming soon)
-        this.router.register('/courses', () => this.renderer.renderComingSoon('All Courses'));
+        this.router.register('/courses', () => this.renderer.renderCoursesPage());
         this.router.register('/calendar', () => this.renderer.renderComingSoon('Calendar'));
         this.router.register('/inbox', () => this.renderer.renderComingSoon('Inbox'));
         this.router.register('/grades', () => this.renderer.renderComingSoon('Grades'));
