@@ -95,6 +95,18 @@ class SPARouter {
             };
         }
 
+        // Parse assignment route: /course/12/assignment/5
+        const assignMatch = path.match(/^\/course\/(\d+)\/assignment\/(\d+)$/);
+        if (assignMatch) {
+            return {
+                route: '/assignment',
+                params: {
+                    courseId: parseInt(assignMatch[1]),
+                    assignmentId: parseInt(assignMatch[2])
+                }
+            };
+        }
+
         // Direct routes
         return { route: path, params: {} };
     }
@@ -486,37 +498,39 @@ class ViewRenderer {
                 ${pending.length ? `
                     <div class="mb-10">
                         <h3 class="text-lg font-medium text-gray-700 mb-4">Upcoming</h3>
+                       
+                       
+                       
                         <div class="space-y-4">
-                            ${pending.map(assign => `
-                                <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex-1">
-                                            <h4 class="font-medium text-gray-900">${escapeHtml(assign.title)}</h4>
-                                            <div class="flex items-center flex-wrap gap-4 mt-2 text-sm text-gray-600">
-                                                <span class="flex items-center">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    Due: ${escapeHtml(assign.dueDate)}
-                                                </span>
-                                                <span>${assign.points} points</span>
-                                                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">Pending</span>
-                                            </div>
-                                        </div>
-                                        <div class="text-right">
-                                            ${assign.grade != null
-            ? `<span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Graded</span>
-                                                   <div class="text-2xl font-bold text-green-600 mt-2">${assign.grade}/${assign.points}</div>`
-            : `<span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">Not Graded</span>`
-        }
-                                        </div>
-                                    </div>
-                                    <button class="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
-                                        Start Assignment
-                                    </button>
-                                </div>
-                            `).join('')}
+                        ${pending.map(assign => `
+    <a href="#/course/${course.id}/assignment/${assign.id}" 
+       class="block border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+
+        <div class="flex justify-between items-start mb-2">
+            <div class="flex-1">
+                <h4 class="font-medium text-gray-900">${escapeHtml(assign.title)}</h4>
+                <div class="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                    <span class="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Due: ${escapeHtml(assign.dueDate)}
+                    </span>
+                    <span>${assign.points} points</span>
+                </div>
+            </div>
+
+            <div class="text-right">
+                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">Pending</span>
+            </div>
+        </div>
+
+    </a>
+`).join('')}
+
                         </div>
+                    
+                    
                     </div>
                 ` : `
                     <p class="text-gray-500">No upcoming assignments.</p>
@@ -769,6 +783,124 @@ class ViewRenderer {
         deptSelect.addEventListener('change', applyFilters);
     }
 
+    renderAssignmentDetail(params) {
+        const { courseId, assignmentId } = params;
+        const course = getCourseById(courseId);
+
+        if (!course) {
+            this.render404();
+            return;
+        }
+
+        const assignment = course.assignments.find(a => a.id === assignmentId);
+        if (!assignment) {
+            this.render404();
+            return;
+        }
+
+        this.appContainer.innerHTML = `
+        <div class="p-6 fade-in">
+            <!-- Breadcrumb -->
+            <nav class="mb-6" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-2 text-sm text-gray-600">
+                    <li><a href="#/" class="hover:text-blue-600">Dashboard</a></li>
+                    <li><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4"><path d="M9 5l7 7-7 7"/></svg></li>
+                    <li><a href="#/course/${courseId}/home" class="hover:text-blue-600">${course.code}</a></li>
+                    <li><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4"><path d="M9 5l7 7-7 7"/></svg></li>
+                    <li class="font-medium text-gray-900">${assignment.title}</li>
+                </ol>
+            </nav>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">${assignment.title}</h1>
+                <p class="text-gray-600 mb-4">Due: ${assignment.dueDate}</p>
+                <p class="text-sm text-gray-700 mb-6">${assignment.description || 'No description provided.'}</p>
+
+                ${assignment.submitted ? `
+                    <div class="p-4 bg-green-100 text-green-800 rounded-lg mb-6">
+                        ✅ Assignment already submitted
+                    </div>
+                ` : `
+                    <button id="start-assignment-btn" 
+                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Start Assignment
+                    </button>
+                `}
+            </div>
+        </div>
+    `;
+
+        if (!assignment.submitted) {
+            document.getElementById('start-assignment-btn')
+                .addEventListener('click', () => this.openSubmissionModal(course, assignment));
+        }
+    }
+
+
+    openSubmissionModal(course, assignment) {
+        const modal = document.createElement('div');
+        modal.id = "submission-modal";
+        modal.className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 fade-in";
+
+        modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Submit Assignment</h2>
+            
+            <label class="block mb-3 text-sm font-medium text-gray-700">Text Entry</label>
+            <textarea id="submission-text" 
+                      class="w-full border rounded-lg p-3 mb-4 h-32"
+                      placeholder="Type your response here..."></textarea>
+
+            <label class="block mb-2 text-sm font-medium text-gray-700">Upload File</label>
+            <input type="file" id="submission-file" class="mb-6">
+
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-submit" 
+                        class="px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
+                    Cancel
+                </button>
+                <button id="confirm-submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Submit
+                </button>
+            </div>
+        </div>
+    `;
+
+        document.body.appendChild(modal);
+
+        document.getElementById('cancel-submit').onclick = () => modal.remove();
+        document.getElementById('confirm-submit').onclick = () =>
+            this.submitAssignment(course, assignment, modal);
+    }
+
+    submitAssignment(course, assignment, modal) {
+        const text = document.getElementById('submission-text').value.trim();
+        const file = document.getElementById('submission-file').files[0];
+
+        if (!text && !file) {
+            showToast("You must provide text or upload a file.", "error");
+            return;
+        }
+
+        // Update assignment in state
+        assignment.submitted = true;
+        assignment.submission = {
+            text,
+            fileName: file ? file.name : null,
+            submittedAt: new Date().toISOString()
+        };
+
+        // Persist state
+        stateManager.setCourses(stateManager.getState().courses);
+
+        modal.remove();
+        showToast("Assignment submitted successfully!", "success");
+
+        // Navigate back to assignments tab
+        window.location.hash = `#/course/${course.id}/assignments`;
+    }
+
 
     /* --------------------------------- Misc -------------------------------- */
 
@@ -864,14 +996,14 @@ class SPAApp {
     }
 
     registerRoutes() {
-        // Dashboard
         this.router.register('/', () => this.renderer.renderDashboard());
-
-        // Course detail
         this.router.register('/course/:id', (params) => this.renderer.renderCourse(params));
+        this.router.register('/courses', () => this.renderer.renderCoursesPage());
+        this.router.register("/assignment", (params) =>{
+            this.renderer.renderAssignmentDetail(params);
+        })
 
         // Other pages (coming soon)
-        this.router.register('/courses', () => this.renderer.renderCoursesPage());
         this.router.register('/calendar', () => this.renderer.renderComingSoon('Calendar'));
         this.router.register('/inbox', () => this.renderer.renderComingSoon('Inbox'));
         this.router.register('/grades', () => this.renderer.renderComingSoon('Grades'));
