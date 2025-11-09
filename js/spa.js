@@ -11,6 +11,7 @@ import { getCourseById, calculateCurrentGrade, getPendingAssignments, getComplet
 import { stateManager } from './state.js';
 import { renderCourses, renderTodos, renderAnnouncements, updateNotificationBadge, showToast } from './ui.js';
 import { escapeHtml, getElement, addEventListenerSafe, isMobile } from './utils.js';
+import {buildCalendarEvents} from "./calendar.js";
 
 /* ------------------------------ SPA Router ------------------------------ */
 
@@ -172,6 +173,9 @@ class SPARouter {
         // Initial route
         const initial = window.location.hash || '#/';
         this.navigate(initial, false);
+
+        // Calendar
+        window.calendarEvents = buildCalendarEvents();
     }
 }
 
@@ -190,7 +194,7 @@ class ViewRenderer {
             <div class="p-6 fade-in">
                 <!-- Welcome Banner -->
                 <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl p-6 mb-6 shadow-md">
-                    <h1 class="text-2xl md:text-3xl font-bold mb-2">Welcome back, Peter Anteater! 🐜</h1>
+                    <h1 class="text-2xl md:text-3xl font-bold mb-2">Welcome back, Peter Anteater!</h1>
                     <p class="text-blue-100">You have 5 assignments due this week</p>
                 </div>
 
@@ -498,8 +502,6 @@ class ViewRenderer {
                 ${pending.length ? `
                     <div class="mb-10">
                         <h3 class="text-lg font-medium text-gray-700 mb-4">Upcoming</h3>
-                       
-                       
                        
                         <div class="space-y-4">
                         ${pending.map(assign => `
@@ -901,6 +903,394 @@ class ViewRenderer {
         window.location.hash = `#/course/${course.id}/assignments`;
     }
 
+    /*-------------------Calender-------------------------------*/
+
+    renderCalendar() {
+        const { calendar, courses } = stateManager.getState();
+        const { month, year } = calendar;
+
+        const firstDay = new Date(year, month, 1);
+        const firstWeekday = firstDay.getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        let html = `
+    <div class="p-6 fade-in">
+
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-2">
+                <button id="prev-month"
+                    class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">‹</button>
+
+                <button id="today-btn"
+                    class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Today</button>
+
+                <button id="next-month"
+                    class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">›</button>
+            </div>
+
+            <h1 class="text-2xl font-bold">${this.monthName(month)} ${year}</h1>
+        </div>
+
+        <div class="grid grid-cols-7 gap-1 text-center text-sm font-semibold text-gray-600 mb-2">
+            <div>Sun</div><div>Mon</div><div>Tue</div>
+            <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+        </div>
+
+        <div class="grid grid-cols-7 gap-1 text-sm">
+    `;
+
+        // Padding before the first day
+        for (let i = 0; i < firstWeekday; i++) {
+            html += `<div class="p-4 border h-24 bg-gray-50"></div>`;
+        }
+
+        // Main days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const fullDate = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const events = this.getEventsForDay(fullDate, courses);
+
+            html += `
+    <div class="p-1 border relative h-28 cursor-pointer hover:bg-gray-50" data-date="${fullDate}">
+        <div class="text-xs text-gray-600 mb-1">${day}</div>
+
+        <div class="space-y-1 overflow-y-auto custom-scrollbar">
+            ${events.map(ev => {
+                const colorClasses = this.getColorClass(ev.color);
+                return `
+                    <div class="px-1 py-0.5 text-xs rounded truncate ${colorClasses}">
+                        ${escapeHtml(ev.title)}
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    </div>
+`;
+        }
+
+        html += `
+        </div>
+    </div>
+    `;
+
+        this.appContainer.innerHTML = html;
+        this.attachCalendarControls();
+    }
+
+
+    renderCalendarHeader() {
+        return `
+        <div class="flex items-center justify-between mb-4">
+
+            <button id="today-btn" 
+                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">
+                Today
+            </button>
+
+            <div class="flex items-center space-x-4">
+                <button id="prev-month" 
+                    class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded">
+                    ←
+                </button>
+
+                <h2 class="text-xl font-semibold">
+                    ${this.formatMonthLabel(this.month, this.year)}
+                </h2>
+
+                <button id="next-month" 
+                    class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded">
+                    →
+                </button>
+            </div>
+
+            <div class="flex space-x-2">
+                <button class="px-3 py-2 border rounded bg-gray-100">Week</button>
+                <button class="px-3 py-2 border rounded bg-blue-600 text-white">Month</button>
+                <button class="px-3 py-2 border rounded bg-gray-100">Agenda</button>
+            </div>
+
+        </div>
+    `;
+    }
+
+    renderCalendarDays(month, year, events) {
+        const firstDay = new Date(year, month, 1);
+        const startDay = firstDay.getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        // Find trailing days from previous month
+        const prevMonthDays = new Date(year, month, 0).getDate();
+        const prevMonthStart = prevMonthDays - startDay + 1;
+
+        let html = "<div class='grid grid-cols-7 border border-gray-200'>";
+
+        // -------------------------
+        // PREVIOUS MONTH DAYS (faded)
+        // -------------------------
+        for (let d = prevMonthStart; d <= prevMonthDays; d++) {
+            html += `
+            <div class="border h-32 p-2 bg-gray-50 text-gray-300">
+                <div class="text-xs">${d}</div>
+            </div>
+        `;
+        }
+
+        // -------------------------
+        // CURRENT MONTH DAYS
+        // -------------------------
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${month+1}-${day}`;
+            const dayEvents = events.filter(ev => ev.date === dateStr);
+
+            html += `
+            <div class="border h-32 p-1 relative hover:bg-gray-50 cursor-pointer" 
+                 data-date="${dateStr}">
+                
+                <div class="text-xs font-medium pl-1">${day}</div>
+
+                <div class="mt-1 space-y-1 overflow-hidden h-[80px]">
+                    ${dayEvents.map(ev => `
+                        <div class="truncate text-xs px-2 py-1 rounded border"
+                             style="border-color:${this.mapColor(ev.color)};
+                                    color:${this.mapColor(ev.color)};">
+                            ${ev.time ? ev.time + " " : ""}${ev.title}
+                        </div>
+                    `).join("")}
+                </div>
+            </div>
+        `;
+        }
+
+        // -------------------------
+        // NEXT MONTH DAYS (faded)
+        // -------------------------
+        const cellsUsed = startDay + daysInMonth;
+        const remaining = 42 - cellsUsed;
+
+        for (let d = 1; d <= remaining; d++) {
+            html += `
+            <div class="border h-32 p-2 bg-gray-50 text-gray-300">
+                <div class="text-xs">${d}</div>
+            </div>
+        `;
+        }
+
+        html += "</div>";
+        return html;
+    }
+
+    mapColor(tw) {
+        const map = {
+            "from-blue-600": "#2563eb",
+            "from-red-600": "#dc2626",
+            "from-green-600": "#16a34a",
+            "from-yellow-600": "#ca8a04"
+        };
+        return map[tw] || "#2563eb";
+    }
+
+    formatMonthLabel(month, year) {
+        return new Date(year, month).toLocaleString("en-US", {
+            month: "long",
+            year: "numeric"
+        });
+    }
+
+    attachCalendarControls() {
+        const prev = document.getElementById('prev-month');
+        const next = document.getElementById('next-month');
+        const todayBtn = document.getElementById('today-btn');
+        const days = this.appContainer.querySelectorAll("[data-date]");
+
+        // Previous month
+        prev.addEventListener("click", () => {
+            stateManager.decrementMonth();
+            window.location.hash = "#/calendar";
+        });
+
+        // Next month
+        next.addEventListener("click", () => {
+            stateManager.incrementMonth();
+            window.location.hash = "#/calendar";
+        });
+
+        // ✅ Today button (PUT THIS HERE)
+        todayBtn.addEventListener("click", () => {
+            const now = new Date();
+            stateManager.setCalendar(now.getMonth(), now.getFullYear());
+            window.location.hash = "#/calendar";
+        });
+
+        // Day modal
+        days.forEach(d => {
+            d.addEventListener("click", () => {
+                const date = d.dataset.date;
+                this.showCalendarDayModal(date);
+            });
+        });
+    }
+
+    showCalendarDayModal(dateStr) {
+        const { courses } = stateManager.getState();
+        const events = this.getEventsForDay(dateStr, courses);
+
+        let modal = document.getElementById("calendar-modal");
+
+        // Create modal container if it doesn't exist
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'calendar-modal';
+            document.body.appendChild(modal);
+        }
+
+        if (events.length === 0) {
+            modal.innerHTML = `
+            <div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
+                    <h2 class="text-xl font-bold mb-4">Events on ${dateStr}</h2>
+                    <p class="text-gray-500">No events scheduled for this day.</p>
+                    <button
+                        id="close-calendar-modal"
+                        class="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >Close</button>
+                </div>
+            </div>
+        `;
+        } else {
+            modal.innerHTML = `
+            <div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
+                    <h2 class="text-xl font-bold mb-4">Events on ${dateStr}</h2>
+
+                    <div class="space-y-4">
+                        ${events.map(ev => {
+                const colorClasses = this.getColorClass(ev.color);
+                return `
+                                <div class="border-l-4 pl-4 py-2 ${colorClasses}">
+                                    <div class="font-semibold">${escapeHtml(ev.title)}</div>
+                                    <div class="text-sm opacity-75 capitalize">${ev.type}</div>
+                                    ${ev.type === 'assignment' ? `
+                                        <a href="#/course/${ev.courseId}/assignment/${ev.assignmentId}"
+                                           class="text-blue-600 text-sm underline hover:text-blue-800 mt-1 inline-block">
+                                            View Assignment
+                                        </a>
+                                    ` : ''}
+                                </div>
+                            `;
+            }).join('')}
+                    </div>
+
+                    <button
+                        id="close-calendar-modal"
+                        class="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full"
+                    >Close</button>
+                </div>
+            </div>
+        `;
+        }
+
+        const closeBtn = document.getElementById("close-calendar-modal");
+        if (closeBtn) {
+            closeBtn.addEventListener("click", () => {
+                modal.innerHTML = "";
+            });
+        }
+    }
+
+    monthName(month) {
+        return [
+            "January","February","March","April","May","June",
+            "July","August","September","October","November","December"
+        ][month];
+    }
+
+    getColorClass(courseColor) {
+        // Map course gradient colors to Tailwind utility classes
+        const colorMap = {
+            'from-blue-500': 'bg-blue-100 text-blue-700 border-blue-300',
+            'from-blue-600': 'bg-blue-100 text-blue-700 border-blue-300',
+            'from-green-500': 'bg-green-100 text-green-700 border-green-300',
+            'from-green-600': 'bg-green-100 text-green-700 border-green-300',
+            'from-orange-500': 'bg-orange-100 text-orange-700 border-orange-300',
+            'from-orange-600': 'bg-orange-100 text-orange-700 border-orange-300',
+            'from-purple-500': 'bg-purple-100 text-purple-700 border-purple-300',
+            'from-purple-600': 'bg-purple-100 text-purple-700 border-purple-300',
+            'from-red-500': 'bg-red-100 text-red-700 border-red-300',
+            'from-red-600': 'bg-red-100 text-red-700 border-red-300',
+            'from-teal-500': 'bg-teal-100 text-teal-700 border-teal-300',
+            'from-teal-600': 'bg-teal-100 text-teal-700 border-teal-300'
+        };
+
+        // Extract the "from-color" part from gradient class
+        const colorKey = courseColor.split(' ')[0];
+        return colorMap[colorKey] || 'bg-gray-100 text-gray-700 border-gray-300';
+    }
+
+    getEventsForDay(date, courses) {
+        const events = [];
+
+        // Helper to parse various date formats to YYYY-MM-DD
+        const normalizeDate = (dateStr) => {
+            // If already in YYYY-MM-DD format, return as is
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                return dateStr;
+            }
+
+            // Try to parse "Oct 15 at 11:59pm" format
+            try {
+                const parsed = new Date(dateStr);
+                if (!isNaN(parsed.getTime())) {
+                    const year = parsed.getFullYear();
+                    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+                    const day = String(parsed.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
+            } catch (e) {
+                console.warn('Could not parse date:', dateStr);
+            }
+
+            return null;
+        };
+
+        courses.forEach(course => {
+            // Get course details to access assignments
+            const courseDetails = getCourseById(course.id);
+            if (!courseDetails) return;
+
+            // Assignments
+            courseDetails.assignments.forEach(a => {
+                const normalizedDate = normalizeDate(a.dueDate);
+                if (normalizedDate === date) {
+                    events.push({
+                        id: a.id,
+                        title: a.title,
+                        color: course.color,
+                        type: 'assignment',
+                        courseId: course.id,
+                        assignmentId: a.id
+                    });
+                }
+            });
+
+            // Additional course events
+            if (courseDetails.events) {
+                courseDetails.events.forEach(ev => {
+                    const normalizedDate = normalizeDate(ev.date);
+                    if (normalizedDate === date) {
+                        events.push({
+                            id: ev.id,
+                            title: ev.title,
+                            color: course.color,
+                            type: ev.type,
+                            courseId: course.id
+                        });
+                    }
+                });
+            }
+        });
+
+        return events;
+    }
+
 
     /* --------------------------------- Misc -------------------------------- */
 
@@ -1002,9 +1392,9 @@ class SPAApp {
         this.router.register("/assignment", (params) =>{
             this.renderer.renderAssignmentDetail(params);
         })
+        this.router.register('/calendar', () => this.renderer.renderCalendar());
 
         // Other pages (coming soon)
-        this.router.register('/calendar', () => this.renderer.renderComingSoon('Calendar'));
         this.router.register('/inbox', () => this.renderer.renderComingSoon('Inbox'));
         this.router.register('/grades', () => this.renderer.renderComingSoon('Grades'));
         this.router.register('/groups', () => this.renderer.renderComingSoon('Groups'));

@@ -18,6 +18,7 @@ class StateManager {
 
         this.listeners = [];
         this.loadState();
+        this.initCalendar();
     }
 
     /**
@@ -187,6 +188,46 @@ class StateManager {
         );
         this.setTodos(todos);
     }
+
+    /* Calendar State*/
+
+    initCalendar() {
+        const today = new Date();
+        if (!this.state.calendar) {
+            this.state.calendar = {
+                month: today.getMonth(),
+                year: today.getFullYear()
+            };
+        }
+    }
+
+    setCalendar(month, year) {
+        this.setState({
+            calendar: { month, year }
+        });
+    }
+
+    incrementMonth() {
+        let { month, year } = this.state.calendar;
+        month++;
+        if (month > 11) {
+            month = 0;
+            year++;
+        }
+        this.setCalendar(month, year);
+    }
+
+    decrementMonth() {
+        let { month, year } = this.state.calendar;
+        month--;
+        if (month < 0) {
+            month = 11;
+            year--;
+        }
+        this.setCalendar(month, year);
+    }
+
+
 }
 
 // Create and export singleton instance
