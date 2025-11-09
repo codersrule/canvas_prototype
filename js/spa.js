@@ -11,7 +11,7 @@ import { getCourseById, calculateCurrentGrade, getPendingAssignments, getComplet
 import { stateManager } from './state.js';
 import { renderCourses, renderTodos, renderAnnouncements, updateNotificationBadge, showToast } from './ui.js';
 import { escapeHtml, getElement, addEventListenerSafe, isMobile } from './utils.js';
-import {buildCalendarEvents} from "./calendar.js";
+import { buildCalendarEvents } from "./calendar.js";
 
 /* ------------------------------ SPA Router ------------------------------ */
 
@@ -906,68 +906,146 @@ class ViewRenderer {
     /*-------------------Calender-------------------------------*/
 
     renderCalendar() {
-        const { calendar, courses } = stateManager.getState();
+        const { calendar } = stateManager.getState();
         const { month, year } = calendar;
 
         const firstDay = new Date(year, month, 1);
         const firstWeekday = firstDay.getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+        // Build events from courseData
+        const allEvents = buildCalendarEvents();
+
         let html = `
     <div class="p-6 fade-in">
-
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center space-x-2">
                 <button id="prev-month"
-                    class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">‹</button>
+                    class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors">
+                    ‹
+                </button>
 
                 <button id="today-btn"
-                    class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Today</button>
+                    class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                    Today
+                </button>
 
                 <button id="next-month"
-                    class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">›</button>
+                    class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors">
+                    ›
+                </button>
             </div>
 
-            <h1 class="text-2xl font-bold">${this.monthName(month)} ${year}</h1>
+            <h1 class="text-2xl font-bold text-gray-800">${this.monthName(month)} ${year}</h1>
         </div>
 
-        <div class="grid grid-cols-7 gap-1 text-center text-sm font-semibold text-gray-600 mb-2">
-            <div>Sun</div><div>Mon</div><div>Tue</div>
-            <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+        <!-- Day headers -->
+        <div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-600 mb-2 bg-gray-50 p-2 rounded">
+            <div class="py-2">Sun</div>
+            <div class="py-2">Mon</div>
+            <div class="py-2">Tue</div>
+            <div class="py-2">Wed</div>
+            <div class="py-2">Thu</div>
+            <div class="py-2">Fri</div>
+            <div class="py-2">Sat</div>
         </div>
 
-        <div class="grid grid-cols-7 gap-1 text-sm">
+        <!-- Calendar grid -->
+        <div class="grid grid-cols-7 gap-1 bg-gray-100 p-1 rounded-lg">
     `;
 
         // Padding before the first day
         for (let i = 0; i < firstWeekday; i++) {
-            html += `<div class="p-4 border h-24 bg-gray-50"></div>`;
+            html += `<div class="bg-gray-50 rounded min-h-24 p-2"></div>`;
         }
 
         // Main days
         for (let day = 1; day <= daysInMonth; day++) {
             const fullDate = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-            const events = this.getEventsForDay(fullDate, courses);
+            const dayEvents = allEvents.filter(e => e.date === fullDate);
+
+            // Check if it's today
+            const today = new Date();
+            const isToday = today.getDate() === day &&
+                today.getMonth() === month &&
+                today.getFullYear() === year;
 
             html += `
-    <div class="p-1 border relative h-28 cursor-pointer hover:bg-gray-50" data-date="${fullDate}">
-        <div class="text-xs text-gray-600 mb-1">${day}</div>
+        <div class="bg-white rounded min-h-24 p-2 cursor-pointer hover:shadow-md transition-shadow ${isToday ? 'ring-2 ring-blue-500' : ''}" 
+             data-date="${fullDate}">
+            <div class="text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : 'text-gray-700'}">
+                ${day}
+            </div>
 
-        <div class="space-y-1 overflow-y-auto custom-scrollbar">
-            ${events.map(ev => {
+            <div class="space-y-1 overflow-y-auto" style="max-height: 80px;">
+                ${dayEvents.slice(0, 3).map(ev => {
                 const colorClasses = this.getColorClass(ev.color);
+                const isOverdue = !ev.submitted && new Date(ev.date) < new Date();
+
                 return `
-                    <div class="px-1 py-0.5 text-xs rounded truncate ${colorClasses}">
-                        ${escapeHtml(ev.title)}
-                    </div>
-                `;
+                        <div class="px-2 py-1 text-xs rounded truncate ${colorClasses} hover:opacity-80 cursor-pointer"
+                             title="${escapeHtml(ev.title)}">
+                            <div class="flex items-center gap-1">
+                                ${ev.type === 'assignment' ? `
+                                    <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                                    </svg>
+                                ` : ''}
+                                <span class="truncate">${escapeHtml(ev.title)}</span>
+                            </div>
+                        </div>
+                    `;
             }).join('')}
+                ${dayEvents.length > 3 ? `
+                    <div class="text-xs text-gray-500 text-center">
+                        +${dayEvents.length - 3} more
+                    </div>
+                ` : ''}
+            </div>
         </div>
-    </div>
-`;
+        `;
+        }
+
+        // Fill remaining cells
+        const totalCells = firstWeekday + daysInMonth;
+        const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+        for (let i = 0; i < remainingCells; i++) {
+            html += `<div class="bg-gray-50 rounded min-h-24 p-2"></div>`;
         }
 
         html += `
+        </div>
+
+        <!-- Legend -->
+        <div class="mt-6 bg-white rounded-lg shadow-md p-4">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">Legend</h3>
+            <div class="flex flex-wrap gap-4 text-xs">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-blue-100 border border-blue-300 rounded"></div>
+                    <span class="text-gray-600">ICS 31</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                    <span class="text-gray-600">MATH 2D</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-orange-100 border border-orange-300 rounded"></div>
+                    <span class="text-gray-600">WRITING 39B</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-purple-100 border border-purple-300 rounded"></div>
+                    <span class="text-gray-600">ICS 6B</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+                    <span class="text-gray-600">PHYSICS 7C</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-teal-100 border border-teal-300 rounded"></div>
+                    <span class="text-gray-600">HUMCORE 1A</span>
+                </div>
+            </div>
         </div>
     </div>
     `;
@@ -1226,69 +1304,9 @@ class ViewRenderer {
     }
 
     getEventsForDay(date, courses) {
-        const events = [];
-
-        // Helper to parse various date formats to YYYY-MM-DD
-        const normalizeDate = (dateStr) => {
-            // If already in YYYY-MM-DD format, return as is
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-                return dateStr;
-            }
-
-            // Try to parse "Oct 15 at 11:59pm" format
-            try {
-                const parsed = new Date(dateStr);
-                if (!isNaN(parsed.getTime())) {
-                    const year = parsed.getFullYear();
-                    const month = String(parsed.getMonth() + 1).padStart(2, '0');
-                    const day = String(parsed.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                }
-            } catch (e) {
-                console.warn('Could not parse date:', dateStr);
-            }
-
-            return null;
-        };
-
-        courses.forEach(course => {
-            // Get course details to access assignments
-            const courseDetails = getCourseById(course.id);
-            if (!courseDetails) return;
-
-            // Assignments
-            courseDetails.assignments.forEach(a => {
-                const normalizedDate = normalizeDate(a.dueDate);
-                if (normalizedDate === date) {
-                    events.push({
-                        id: a.id,
-                        title: a.title,
-                        color: course.color,
-                        type: 'assignment',
-                        courseId: course.id,
-                        assignmentId: a.id
-                    });
-                }
-            });
-
-            // Additional course events
-            if (courseDetails.events) {
-                courseDetails.events.forEach(ev => {
-                    const normalizedDate = normalizeDate(ev.date);
-                    if (normalizedDate === date) {
-                        events.push({
-                            id: ev.id,
-                            title: ev.title,
-                            color: course.color,
-                            type: ev.type,
-                            courseId: course.id
-                        });
-                    }
-                });
-            }
-        });
-
-        return events;
+        // Events are already built in the global scope
+        const allEvents = buildCalendarEvents();
+        return allEvents.filter(event => event.date === date);
     }
 
 
