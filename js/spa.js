@@ -368,6 +368,7 @@ class ViewRenderer {
                 <div class="bg-white rounded-lg shadow-md mb-6 overflow-hidden">
                     <nav class="flex border-b" role="tablist" aria-label="Course sections">
                         ${this.tabLink(courseId, 'home', activeTab)}
+                        ${this.tabLink(courseId, 'announcements', activeTab)}
                         ${this.tabLink(courseId, 'assignments', activeTab)}
                         ${this.tabLink(courseId, 'modules', activeTab)}
                         ${this.tabLink(courseId, 'grades', activeTab)}
@@ -398,6 +399,7 @@ class ViewRenderer {
     renderCourseTab(course, tab) {
         switch (tab) {
             case 'home': return this.renderCourseHomeTab(course);
+            case 'announcements': return this.renderCourseAnnouncementsTab(course);
             case 'assignments': return this.renderCourseAssignmentsTab(course);
             case 'modules': return this.renderCourseModulesTab(course);
             case 'grades': return this.renderCourseGradesTab(course);
@@ -692,6 +694,126 @@ class ViewRenderer {
             </div>
         `;
     }
+
+    renderCourseAnnouncementsTab(course) {
+        return `
+        <div class="space-y-6">
+            <!-- Header with Create Button -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-700">Course Announcements</h2>
+                    <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        New Announcement
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600">Stay updated with the latest course information and updates</p>
+            </div>
+
+            <!-- Announcements List -->
+            <div class="space-y-4">
+                ${course.announcements && course.announcements.length > 0 ?
+            course.announcements.map((announcement, index) => `
+                        <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                            <!-- Announcement Header -->
+                            <div class="bg-gradient-to-r ${course.color} p-4">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-white">${escapeHtml(announcement.title)}</h3>
+                                            <div class="flex items-center space-x-4 text-sm text-white text-opacity-90 mt-1">
+                                                <span class="flex items-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    ${escapeHtml(announcement.date)}
+                                                </span>
+                                                <span class="flex items-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                    </svg>
+                                                    ${escapeHtml(course.professor)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded transition-colors" title="More options">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Announcement Content -->
+                            <div class="p-6">
+                                <div class="prose max-w-none text-gray-700">
+                                    <p class="text-base leading-relaxed whitespace-pre-line">${escapeHtml(announcement.content)}</p>
+                                </div>
+
+                                <!-- Announcement Actions -->
+                                <div class="mt-6 pt-4 border-t border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-4">
+                                            <button class="flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                                </svg>
+                                                <span>Comments</span>
+                                            </button>
+                                            <button class="flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                                                </svg>
+                                                <span>Save</span>
+                                            </button>
+                                            <button class="flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                                </svg>
+                                                <span>Share</span>
+                                            </button>
+                                        </div>
+                                        ${index === 0 ? '<span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">Latest</span>' : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')
+            : `
+                    <div class="bg-white rounded-lg shadow-md p-12 text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-20 h-20 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                        </svg>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-2">No Announcements Yet</h3>
+                        <p class="text-gray-600 mb-6">There are no announcements for this course at the moment.</p>
+                        <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            Create First Announcement
+                        </button>
+                    </div>
+                `}
+            </div>
+
+            <!-- Archive Section (Optional) -->
+            ${course.announcements && course.announcements.length > 3 ? `
+                <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                    <p class="text-sm text-gray-600 mb-3">Viewing all announcements</p>
+                    <button class="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                        View Archived Announcements →
+                    </button>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    }
+
 
     /**
      * Renders the All Courses page
