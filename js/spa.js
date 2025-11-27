@@ -7,11 +7,18 @@
  */
 
 import { coursesData, todosData, announcementsData, userData } from './data.js';
-import { getCourseById, calculateCurrentGrade, getPendingAssignments, getCompletedModulesCount } from './courseData.js';
+import {
+    getCourseById,
+    calculateCurrentGrade,
+    getPendingAssignments,
+    getCompletedModulesCount,
+    courseDetails
+} from './courseData.js';
 import { stateManager } from './state.js';
 import { renderCourses, renderTodos, renderAnnouncements, updateNotificationBadge, showToast } from './ui.js';
 import { escapeHtml, getElement, addEventListenerSafe, isMobile } from './utils.js';
 import { buildCalendarEvents } from "./calendar.js";
+import { buildGradesData, calculateOverallGPA, calculateAverageScore, getGradedCount, sortGrades } from './gradesData.js';
 
 /* ------------------------------ SPA Router ------------------------------ */
 
@@ -1054,6 +1061,433 @@ class ViewRenderer {
         this.attachCalendarControls();
     }
 
+    /* ------------------------------ Grades Page ------------------------------ */
+    renderGrades() {
+        const allGrades = buildGradesData();
+        const overallGPA = calculateOverallGPA();
+        const avgScore = calculateAverageScore();
+        const { graded, total } = getGradedCount();
+
+        this.appContainer.innerHTML = `
+        <div class="p-6 fade-in">
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">My Grades</h1>
+                <p class="text-gray-600">View your current grades and assignment details</p>
+                
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-5 shadow-md">
+                        <h3 class="text-sm font-medium opacity-90 mb-2">Overall GPA</h3>
+                        <div class="text-3xl font-bold">${overallGPA}</div>
+                        <p class="text-xs opacity-75 mt-1">Based on ${Object.keys(courseDetails).length} courses</p>
+                    </div>
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-5 shadow-md">
+                        <h3 class="text-sm font-medium opacity-90 mb-2">Assignments Graded</h3>
+                        <div class="text-3xl font-bold">${graded}/${total}</div>
+                        <p class="text-xs opacity-75 mt-1">${Math.round((graded/total)*100)}% complete</p>
+                    </div>
+                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg p-5 shadow-md">
+                        <h3 class="text-sm font-medium opacity-90 mb-2">Average Score</h3>
+                        <div class="text-3xl font-bold">${avgScore}%</div>
+                        <p class="text-xs opacity-75 mt-1">Across all graded work</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                <div class="flex flex-wrap gap-4 items-center">
+                    <div class="flex-1 min-w-[200px]">
+                        <label for="grade-search" class="sr-only">Search assignments</label>
+                        <input 
+                            type="search" 
+                            id="grade-search" 
+                            placeholder="Search assignments..." 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
+                    <div>
+                        <label for="course-filter" class="sr-only">Filter by course</label>
+                        <select 
+                            id="course-filter" 
+                            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="all">All Courses</option>
+                            ${Object.values(courseDetails).map(course =>
+            `<option value="${course.id}">${escapeHtml(course.code)}</option>`
+        ).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="status-filter" class="sr-only">Filter by status</label>
+                        <select 
+                            id="status-filter" 
+                            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="graded">Graded</option>
+                            <option value="pending">Pending</option>
+                            <option value="missing">Missing</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grades Table -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="assignment">
+                                    Assignment Name
+                                    <svg class="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="course">
+                                    Course
+                                    <svg class="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="dueDate">
+                                    Due Date
+                                    <svg class="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="status">
+                                    Status
+                                    <svg class="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100" data-sort="grade">
+                                    Grade
+                                    <svg class="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    Points
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="grades-table-body" class="divide-y divide-gray-200">
+                            <!-- Rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade Detail Modal -->
+        <div id="grade-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 id="modal-title" class="text-2xl font-bold text-gray-800"></h2>
+                        <button id="close-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="modal-content"></div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Render initial table
+        this.renderGradesTable(allGrades);
+
+        // Setup event listeners
+        this.setupGradesEventListeners(allGrades);
+    }
+
+    renderGradesTable(grades) {
+        const tbody = document.getElementById('grades-table-body');
+        if (!tbody) return;
+
+        if (grades.length === 0) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                    <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p class="text-lg">No assignments found</p>
+                    <p class="text-sm mt-1">Try adjusting your filters</p>
+                </td>
+            </tr>
+        `;
+            return;
+        }
+
+        tbody.innerHTML = grades.map(grade => {
+            const statusColors = {
+                graded: 'bg-green-100 text-green-800',
+                pending: 'bg-yellow-100 text-yellow-800',
+                missing: 'bg-red-100 text-red-800'
+            };
+
+            const gradeClass = grade.percentage !== null
+                ? grade.percentage >= 90 ? 'text-green-600 font-semibold'
+                    : grade.percentage >= 80 ? 'text-blue-600 font-semibold'
+                        : grade.percentage >= 70 ? 'text-yellow-600 font-semibold'
+                            : 'text-red-600 font-semibold'
+                : 'text-gray-400';
+
+            return `
+            <tr class="hover:bg-gray-50 cursor-pointer transition-colors" data-grade-id="${grade.id}">
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-blue-600 hover:text-blue-800">${escapeHtml(grade.assignmentTitle)}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm text-gray-900">${escapeHtml(grade.courseCode)}</div>
+                    <div class="text-xs text-gray-500">${escapeHtml(grade.courseName)}</div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                    ${escapeHtml(grade.dueDate)}
+                </td>
+                <td class="px-6 py-4">
+                    <span class="px-3 py-1 rounded-full text-xs font-medium ${statusColors[grade.status]}">
+                        ${grade.status.charAt(0).toUpperCase() + grade.status.slice(1)}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-lg ${gradeClass}">
+                        ${grade.percentage !== null ? `${grade.percentage}%` : '-'}
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                    ${grade.grade !== null ? `${grade.grade}/${grade.points}` : `${grade.points} pts`}
+                </td>
+            </tr>
+        `;
+        }).join('');
+
+        // Add click listeners to rows
+        tbody.querySelectorAll('tr[data-grade-id]').forEach(row => {
+            row.addEventListener('click', () => {
+                const gradeId = row.getAttribute('data-grade-id');
+                const grade = grades.find(g => g.id === gradeId);
+                if (grade) this.showGradeModal(grade);
+            });
+        });
+    }
+
+    showGradeModal(grade) {
+        const modal = document.getElementById('grade-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+
+        if (!modal || !modalTitle || !modalContent) return;
+
+        modalTitle.textContent = grade.assignmentTitle;
+
+        const statusColors = {
+            graded: 'bg-green-100 text-green-800 border-green-300',
+            pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+            missing: 'bg-red-100 text-red-800 border-red-300'
+        };
+
+        modalContent.innerHTML = `
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Course</label>
+                    <p class="text-gray-900">${escapeHtml(grade.courseCode)} - ${escapeHtml(grade.courseName)}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Due Date</label>
+                    <p class="text-gray-900">${escapeHtml(grade.dueDate)}</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Status</label>
+                    <span class="inline-block px-3 py-1 rounded-full text-sm font-medium ${statusColors[grade.status]}">
+                        ${grade.status.charAt(0).toUpperCase() + grade.status.slice(1)}
+                    </span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Submitted</label>
+                    <p class="text-gray-900">${grade.submitted ? 'Yes' : 'No'}</p>
+                </div>
+            </div>
+
+            ${grade.grade !== null ? `
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-blue-800 mb-1">Grade</label>
+                            <p class="text-3xl font-bold text-blue-600">${grade.percentage}%</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-blue-800 mb-1">Points Earned</label>
+                            <p class="text-3xl font-bold text-blue-600">${grade.grade}/${grade.points}</p>
+                        </div>
+                    </div>
+                </div>
+            ` : `
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <p class="text-gray-600 text-center">
+                        ${grade.submitted ? 'Grading in progress...' : 'Not yet submitted'}
+                    </p>
+                    <p class="text-sm text-gray-500 text-center mt-2">
+                        Worth ${grade.points} points
+                    </p>
+                </div>
+            `}
+
+            <div class="flex gap-3 pt-4">
+                <a href="#/course/${grade.courseId}/assignment/${grade.assignmentId}" 
+                   class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center">
+                    View Assignment
+                </a>
+                <a href="#/course/${grade.courseId}" 
+                   class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-center">
+                    Go to Course
+                </a>
+            </div>
+        </div>
+    `;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    setupGradesEventListeners(initialGrades) {
+        let currentGrades = [...initialGrades];
+        let currentSort = { field: 'dueDate', ascending: false };
+
+        // Search
+        const searchInput = document.getElementById('grade-search');
+        if (searchInput) {
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const query = e.target.value.toLowerCase();
+                    currentGrades = initialGrades.filter(g =>
+                        g.assignmentTitle.toLowerCase().includes(query) ||
+                        g.courseName.toLowerCase().includes(query) ||
+                        g.courseCode.toLowerCase().includes(query)
+                    );
+                    this.applyFiltersAndRender();
+                }, 300);
+            });
+        }
+
+        // Course filter
+        const courseFilter = document.getElementById('course-filter');
+        if (courseFilter) {
+            courseFilter.addEventListener('change', () => {
+                this.applyFiltersAndRender();
+            });
+        }
+
+        // Status filter
+        const statusFilter = document.getElementById('status-filter');
+        if (statusFilter) {
+            statusFilter.addEventListener('change', () => {
+                this.applyFiltersAndRender();
+            });
+        }
+
+        // Column sorting
+        const sortHeaders = document.querySelectorAll('th[data-sort]');
+        sortHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const field = header.getAttribute('data-sort');
+                if (currentSort.field === field) {
+                    currentSort.ascending = !currentSort.ascending;
+                } else {
+                    currentSort.field = field;
+                    currentSort.ascending = true;
+                }
+
+                // Update sort indicators
+                sortHeaders.forEach(h => {
+                    const svg = h.querySelector('svg');
+                    if (h === header) {
+                        svg.style.transform = currentSort.ascending ? 'rotate(180deg)' : 'rotate(0deg)';
+                        svg.style.transition = 'transform 0.2s';
+                    } else {
+                        svg.style.transform = 'rotate(0deg)';
+                    }
+                });
+
+                this.applyFiltersAndRender();
+            });
+        });
+
+        // Modal close
+        const closeModal = document.getElementById('close-modal');
+        const modal = document.getElementById('grade-modal');
+
+        if (closeModal && modal) {
+            closeModal.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+
+        // Store references for filter function
+        this.gradesData = {
+            allGrades: initialGrades,
+            currentSort
+        };
+    }
+
+    applyFiltersAndRender() {
+        if (!this.gradesData) return;
+
+        const courseFilter = document.getElementById('course-filter');
+        const statusFilter = document.getElementById('status-filter');
+        const searchInput = document.getElementById('grade-search');
+
+        let filtered = [...this.gradesData.allGrades];
+
+        // Apply course filter
+        if (courseFilter && courseFilter.value !== 'all') {
+            const courseId = parseInt(courseFilter.value);
+            filtered = filtered.filter(g => g.courseId === courseId);
+        }
+
+        // Apply status filter
+        if (statusFilter && statusFilter.value !== 'all') {
+            filtered = filtered.filter(g => g.status === statusFilter.value);
+        }
+
+        // Apply search
+        if (searchInput && searchInput.value) {
+            const query = searchInput.value.toLowerCase();
+            filtered = filtered.filter(g =>
+                g.assignmentTitle.toLowerCase().includes(query) ||
+                g.courseName.toLowerCase().includes(query) ||
+                g.courseCode.toLowerCase().includes(query)
+            );
+        }
+
+        // Apply sort
+        const { field, ascending } = this.gradesData.currentSort;
+        filtered = sortGrades(filtered, field, ascending);
+
+        this.renderGradesTable(filtered);
+    }
 
     renderCalendarHeader() {
         return `
@@ -1411,10 +1845,10 @@ class SPAApp {
             this.renderer.renderAssignmentDetail(params);
         })
         this.router.register('/calendar', () => this.renderer.renderCalendar());
+        this.router.register('/grades', () => this.renderer.renderGrades());
 
         // Other pages (coming soon)
         this.router.register('/inbox', () => this.renderer.renderComingSoon('Inbox'));
-        this.router.register('/grades', () => this.renderer.renderComingSoon('Grades'));
         this.router.register('/groups', () => this.renderer.renderComingSoon('Groups'));
         this.router.register('/settings', () => this.renderer.renderComingSoon('Settings'));
 
