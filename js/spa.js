@@ -1914,20 +1914,20 @@ class ViewRenderer {
         // Previous month
         prev.addEventListener("click", () => {
             stateManager.decrementMonth();
-            window.location.hash = "#/calendar";
+            this.renderCalendar();
         });
 
         // Next month
         next.addEventListener("click", () => {
             stateManager.incrementMonth();
-            window.location.hash = "#/calendar";
+            this.renderCalendar();
         });
 
         // ✅ Today button (PUT THIS HERE)
         todayBtn.addEventListener("click", () => {
             const now = new Date();
             stateManager.setCalendar(now.getMonth(), now.getFullYear());
-            window.location.hash = "#/calendar";
+            this.renderCalendar();
         });
 
         // Day modal
