@@ -19,6 +19,7 @@ import { renderCourses, renderTodos, renderAnnouncements, updateNotificationBadg
 import { escapeHtml, getElement, addEventListenerSafe, isMobile } from './utils.js';
 import { buildCalendarEvents } from "./calendar.js";
 import { buildGradesData, calculateOverallGPA, calculateAverageScore, getGradedCount, sortGrades } from './gradesData.js';
+import { getModuleItems, getModuleItemIcon, getModuleItemColor } from './moduleData.js';
 
 /* ------------------------------ SPA Router ------------------------------ */
 
@@ -581,36 +582,211 @@ class ViewRenderer {
 
     renderCourseModulesTab(course) {
         return `
+        <div class="space-y-4">
+            <!-- Module Progress Header -->
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold mb-6 text-gray-700">Course Modules</h2>
-                <div class="space-y-3">
-                    ${course.modules.map(module => `
-                        <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center flex-1">
-                                    ${module.completed ? `
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    ` : `
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    `}
-                                    <div>
-                                        <h3 class="font-medium text-gray-900">${escapeHtml(module.title)}</h3>
-                                        <p class="text-sm text-gray-600">${module.items} items</p>
-                                    </div>
-                                </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-700">Course Modules</h2>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <div class="text-sm text-gray-600">Progress</div>
+                            <div class="text-2xl font-bold text-blue-600">
+                                ${getCompletedModulesCount(course)}/${course.modules.length}
                             </div>
                         </div>
-                    `).join('')}
+                        <div class="w-24 h-24">
+                            <svg class="transform -rotate-90" viewBox="0 0 36 36">
+                                <path
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    fill="none"
+                                    stroke="#e5e7eb"
+                                    stroke-width="3"
+                                />
+                                <path
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    fill="none"
+                                    stroke="#3b82f6"
+                                    stroke-width="3"
+                                    stroke-dasharray="${(getCompletedModulesCount(course) / course.modules.length) * 100}, 100"
+                                />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-500" 
+                         style="width: ${(getCompletedModulesCount(course) / course.modules.length) * 100}%">
+                    </div>
                 </div>
             </div>
-        `;
+
+            <!-- Modules List -->
+            <div class="space-y-3" id="modules-container">
+                ${course.modules.map((module, index) => this.renderModuleCard(course, module, index)).join('')}
+            </div>
+        </div>
+    `;
+    }
+
+    renderModuleCard(course, module, index) {
+        const moduleItems = getModuleItems(course.id, module.id);
+        const hasItems = moduleItems && moduleItems.length > 0;
+
+        return `
+        <div class="bg-white rounded-lg shadow-md overflow-hidden module-card">
+            <!-- Module Header -->
+            <div class="module-header p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                 data-module-id="${module.id}"
+                 onclick="window.toggleModule(${course.id}, ${module.id})">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center flex-1">
+                        <!-- Status Icon -->
+                        ${module.completed ? `
+                            <div class="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        ` : `
+                            <div class="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mr-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        `}
+                        
+                        <!-- Module Info -->
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-900 text-lg">${escapeHtml(module.title)}</h3>
+                            <div class="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                                <span class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    ${module.items} items
+                                </span>
+                                ${hasItems ? `
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        ${moduleItems.filter(item => item.completed).length}/${moduleItems.length} completed
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expand Arrow -->
+                    <div class="flex items-center space-x-2">
+                        ${module.completed ?
+            '<span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Complete</span>'
+            : '<span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">In Progress</span>'
+        }
+                        <svg class="w-5 h-5 text-gray-400 transition-transform duration-200 module-arrow" 
+                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module Content (Collapsible) -->
+            <div class="module-content hidden border-t border-gray-200" id="module-content-${module.id}">
+                ${hasItems ? `
+                    <div class="p-4 bg-gray-50">
+                        <div class="space-y-2">
+                            ${moduleItems.map((item, itemIndex) => this.renderModuleItem(course, module, item, itemIndex)).join('')}
+                        </div>
+                    </div>
+                ` : `
+                    <div class="p-8 text-center text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p>No content items available yet</p>
+                    </div>
+                `}
+            </div>
+        </div>
+    `;
+    }
+
+    renderModuleItem(course, module, item, index) {
+        const icon = getModuleItemIcon(item.type);
+        const colorClass = getModuleItemColor(item.type);
+
+        // Build metadata string
+        let metadata = [];
+        if (item.duration) metadata.push(item.duration);
+        if (item.pages) metadata.push(`${item.pages} pages`);
+        if (item.points) metadata.push(`${item.points} pts`);
+        if (item.dueDate) metadata.push(`Due: ${item.dueDate}`);
+
+        return `
+        <div class="flex items-center justify-between p-3 bg-white rounded-lg hover:shadow-md transition-shadow cursor-pointer group">
+            <div class="flex items-center flex-1">
+                <!-- Completion Checkbox -->
+                <div class="mr-3">
+                    ${item.completed ? `
+                        <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                    ` : `
+                        <div class="w-6 h-6 rounded-full border-2 border-gray-300 group-hover:border-blue-500 transition-colors"></div>
+                    `}
+                </div>
+
+                <!-- Item Icon -->
+                <div class="${colorClass} mr-3">
+                    ${icon}
+                </div>
+
+                <!-- Item Info -->
+                <div class="flex-1">
+                    <div class="flex items-center">
+                        <h4 class="font-medium text-gray-900 ${item.completed ? 'line-through text-gray-500' : ''}">
+                            ${escapeHtml(item.title)}
+                        </h4>
+                        <span class="ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded capitalize">
+                            ${item.type}
+                        </span>
+                    </div>
+                    ${metadata.length > 0 ? `
+                        <div class="text-xs text-gray-500 mt-1">
+                            ${metadata.join(' • ')}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                ${item.type === 'assignment' || item.type === 'quiz' ? `
+                    <button class="px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                        ${item.completed ? 'View' : 'Start'}
+                    </button>
+                ` : item.type === 'video' ? `
+                    <button class="px-3 py-1 text-sm font-medium text-purple-600 hover:bg-purple-50 rounded transition-colors">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        </svg>
+                        Play
+                    </button>
+                ` : item.type === 'file' ? `
+                    <button class="px-3 py-1 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded transition-colors">
+                        Download
+                    </button>
+                ` : `
+                    <button class="px-3 py-1 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded transition-colors">
+                        Open
+                    </button>
+                `}
+            </div>
+        </div>
+    `;
     }
 
     renderCourseGradesTab(course) {
@@ -2024,6 +2200,24 @@ class SPAApp {
                 this.router.navigate(`#${route}`);
             });
         });
+
+        // Add event listener to toggle course module
+        window.toggleModule = (courseId, moduleId) => {
+            const content = document.getElementById(`module-content-${moduleId}`);
+            const arrow = content?.previousElementSibling?.querySelector('.module-arrow');
+
+            if (content && arrow) {
+                const isHidden = content.classList.contains('hidden');
+
+                if (isHidden) {
+                    content.classList.remove('hidden');
+                    arrow.style.transform = 'rotate(180deg)';
+                } else {
+                    content.classList.add('hidden');
+                    arrow.style.transform = 'rotate(0deg)';
+                }
+            }
+        };
     }
 
     toggleSidebar() {
