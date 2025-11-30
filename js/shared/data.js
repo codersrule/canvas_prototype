@@ -103,7 +103,7 @@ export const announcementsData = [
 ];
 
 export const userData = {
-    name: 'Peter Anteater',
+    name: 'Sadiq Haruna',
     initials: 'PA',
     avatar: null,
     semester: 'Fall 2025'

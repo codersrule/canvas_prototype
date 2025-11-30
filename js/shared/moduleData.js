@@ -1,20 +1,21 @@
 /**
- * Enhanced Module Data Structure
- * Add this to your courseData.js to enhance existing modules with detailed content
+ * shared/moduleData.js
+ * Module Items Data and Helper Functions
+ * Contains detailed content for each module in each course
  */
 
-// Sample enhanced module structure with items
+// Module items organized by course ID and module ID
 export const moduleItems = {
     // ICS 31 - Course ID 1
     1: {
-        1: [ // Module ID 1
+        1: [ // Module ID 1 - Week 1: Introduction
             { id: 1, type: 'page', title: 'Welcome to ICS 31', completed: true, points: null },
             { id: 2, type: 'video', title: 'Introduction to Programming', duration: '15:30', completed: true, points: null },
             { id: 3, type: 'reading', title: 'Chapter 1: Getting Started', pages: 12, completed: true, points: null },
             { id: 4, type: 'assignment', title: 'Quiz 1: Python Basics', completed: true, points: 10, dueDate: 'Oct 8' },
             { id: 5, type: 'discussion', title: 'Introduce Yourself', completed: true, points: 5 }
         ],
-        2: [ // Module ID 2
+        2: [ // Module ID 2 - Week 2: Variables
             { id: 1, type: 'video', title: 'Variables and Data Types', duration: '20:15', completed: true, points: null },
             { id: 2, type: 'video', title: 'Working with Strings', duration: '18:45', completed: true, points: null },
             { id: 3, type: 'reading', title: 'Chapter 2: Data Types', pages: 15, completed: true, points: null },
@@ -22,7 +23,7 @@ export const moduleItems = {
             { id: 5, type: 'assignment', title: 'Lab 1: Variables Practice', completed: true, points: 20, dueDate: 'Oct 12' },
             { id: 6, type: 'quiz', title: 'Quiz 2: Data Types', completed: true, points: 10, dueDate: 'Oct 14' }
         ],
-        3: [ // Module ID 3
+        3: [ // Module ID 3 - Week 3: Control Flow
             { id: 1, type: 'video', title: 'If Statements', duration: '22:30', completed: true, points: null },
             { id: 2, type: 'video', title: 'For Loops', duration: '25:00', completed: true, points: null },
             { id: 3, type: 'video', title: 'While Loops', duration: '20:00', completed: true, points: null },
@@ -31,7 +32,7 @@ export const moduleItems = {
             { id: 6, type: 'assignment', title: 'Lab 2: Control Structures', completed: true, points: 25, dueDate: 'Oct 22' },
             { id: 7, type: 'quiz', title: 'Quiz 3: Loops', completed: true, points: 15, dueDate: 'Oct 25' }
         ],
-        4: [ // Module ID 4
+        4: [ // Module ID 4 - Week 4: Functions
             { id: 1, type: 'video', title: 'Defining Functions', duration: '18:20', completed: false, points: null },
             { id: 2, type: 'video', title: 'Parameters and Arguments', duration: '22:15', completed: false, points: null },
             { id: 3, type: 'video', title: 'Return Values', duration: '16:45', completed: false, points: null },
@@ -39,7 +40,7 @@ export const moduleItems = {
             { id: 5, type: 'assignment', title: 'Lab 3: Function Practice', completed: false, points: 30, dueDate: 'Nov 5' },
             { id: 6, type: 'quiz', title: 'Quiz 4: Functions', completed: false, points: 15, dueDate: 'Nov 7' }
         ],
-        5: [ // Module ID 5
+        5: [ // Module ID 5 - Week 5: Lists and Tuples
             { id: 1, type: 'video', title: 'Introduction to Lists', duration: '25:00', completed: false, points: null },
             { id: 2, type: 'video', title: 'List Methods', duration: '20:30', completed: false, points: null },
             { id: 3, type: 'video', title: 'Tuples Explained', duration: '15:45', completed: false, points: null },
@@ -50,9 +51,10 @@ export const moduleItems = {
             { id: 8, type: 'assignment', title: 'Project: Data Processing', completed: false, points: 50, dueDate: 'Nov 19' }
         ]
     },
+
     // MATH 2D - Course ID 2
     2: {
-        1: [
+        1: [ // Module ID 1 - Vectors
             { id: 1, type: 'video', title: 'Vector Basics', duration: '30:00', completed: true, points: null },
             { id: 2, type: 'video', title: 'Dot Product', duration: '25:15', completed: true, points: null },
             { id: 3, type: 'video', title: 'Cross Product', duration: '28:30', completed: true, points: null },
@@ -62,7 +64,7 @@ export const moduleItems = {
             { id: 7, type: 'file', title: 'Vector Practice Problems.pdf', completed: true, points: null },
             { id: 8, type: 'discussion', title: 'Vector Applications', completed: true, points: 10 }
         ],
-        2: [
+        2: [ // Module ID 2 - Vector Functions
             { id: 1, type: 'video', title: 'Vector Functions', duration: '32:00', completed: true, points: null },
             { id: 2, type: 'video', title: 'Derivatives of Vector Functions', duration: '28:45', completed: true, points: null },
             { id: 3, type: 'video', title: 'Arc Length', duration: '25:20', completed: true, points: null },
@@ -71,7 +73,7 @@ export const moduleItems = {
             { id: 6, type: 'quiz', title: 'Quiz: Vector Functions', completed: true, points: 20, dueDate: 'Oct 25' },
             { id: 7, type: 'file', title: 'Lecture Notes 13.pdf', completed: true, points: null }
         ],
-        3: [
+        3: [ // Module ID 3 - Partial Derivatives
             { id: 1, type: 'video', title: 'Partial Derivatives', duration: '35:00', completed: false, points: null },
             { id: 2, type: 'video', title: 'Chain Rule', duration: '30:15', completed: false, points: null },
             { id: 3, type: 'video', title: 'Gradient', duration: '28:30', completed: false, points: null },
@@ -82,7 +84,7 @@ export const moduleItems = {
             { id: 8, type: 'file', title: 'Practice Problems 14.pdf', completed: false, points: null },
             { id: 9, type: 'discussion', title: 'Applications Discussion', completed: false, points: 10 }
         ],
-        4: [
+        4: [ // Module ID 4 - Multiple Integrals
             { id: 1, type: 'video', title: 'Double Integrals', duration: '40:00', completed: false, points: null },
             { id: 2, type: 'video', title: 'Triple Integrals', duration: '38:30', completed: false, points: null },
             { id: 3, type: 'video', title: 'Polar Coordinates', duration: '35:15', completed: false, points: null },
@@ -93,22 +95,27 @@ export const moduleItems = {
             { id: 8, type: 'discussion', title: 'Integration Techniques', completed: false, points: 10 }
         ]
     }
+
+    // Add more courses here as needed
+    // 3: { ... },  // WR 39C
+    // 4: { ... },  // PHYSICS 7C
+    // etc.
 };
 
 /**
  * Gets module items for a specific course and module
- * @param {number} courseId - Course ID
- * @param {number} moduleId - Module ID
- * @returns {Array} Array of module items
+ * @param {number} courseId - Course ID (e.g., 1 for ICS 31)
+ * @param {number} moduleId - Module ID (e.g., 1 for Week 1)
+ * @returns {Array} Array of module items with their properties
  */
 export const getModuleItems = (courseId, moduleId) => {
     return moduleItems[courseId]?.[moduleId] || [];
 };
 
 /**
- * Gets icon for module item type
- * @param {string} type - Item type
- * @returns {string} SVG icon HTML
+ * Gets SVG icon for module item type
+ * @param {string} type - Item type (video, assignment, quiz, reading, page, file, discussion)
+ * @returns {string} SVG icon HTML string
  */
 export const getModuleItemIcon = (type) => {
     const icons = {
@@ -139,9 +146,9 @@ export const getModuleItemIcon = (type) => {
 };
 
 /**
- * Gets color class for module item type
+ * Gets Tailwind color class for module item type
  * @param {string} type - Item type
- * @returns {string} Tailwind color class
+ * @returns {string} Tailwind color class (e.g., 'text-purple-600')
  */
 export const getModuleItemColor = (type) => {
     const colors = {

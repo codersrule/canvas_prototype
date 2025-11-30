@@ -2,7 +2,7 @@
  * UI rendering functions for EduVerse Dashboard
  */
 
-import { escapeHtml } from './utils.js';
+import { escapeHtml } from '../core/utils.js';
 
 /**
  * Renders course cards
