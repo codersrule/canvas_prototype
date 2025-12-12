@@ -34,7 +34,6 @@ export class SPARouter {
             // Update hash if needed
             if (pushHash && window.location.hash !== path) {
                 window.location.hash = path;
-                return; // hashchange will trigger route
             }
 
             // Extract route and params

@@ -17,6 +17,7 @@ import { getModuleItems, getModuleItemIcon, getModuleItemColor } from './shared/
 
 // Student modules
 import { StudentDashboard } from './student/studentDashboard.js';
+import { AssignmentView } from './student/assignmentView.js';
 
 // Teacher modules
 import { RenderTeacherDashboard, renderTeacherCourse } from './teacher/teacherDashboard.js';
@@ -33,7 +34,18 @@ class EduVerseApp {
     constructor() {
         this.router = new SPARouter();
         this.studentDashboard = null;
+        this.assignmentView = null;
         this.elements = {};
+
+        // Bind all methods to preserve 'this' context
+        this.renderCoursesPage = this.renderCoursesPage.bind(this);
+        this.renderCoursePage = this.renderCoursePage.bind(this);
+        this.renderCalendarPage = this.renderCalendarPage.bind(this);
+        this.renderGradesPage = this.renderGradesPage.bind(this);
+        this.renderComingSoon = this.renderComingSoon.bind(this);
+        this.render404 = this.render404.bind(this);
+        this.prevMonth = this.prevMonth.bind(this);
+        this.nextMonth = this.nextMonth.bind(this);
     }
 
     init() {
@@ -47,6 +59,7 @@ class EduVerseApp {
             // Initialize modules
             const appContainer = getElement('main-content');
             this.studentDashboard = new StudentDashboard(appContainer);
+            this.assignmentView = new AssignmentView(appContainer);
 
             // Register routes
             this.registerRoutes();
@@ -57,9 +70,9 @@ class EduVerseApp {
             // Initialize router
             this.router.init(appContainer, this.elements);
 
-            console.log('✅ EduVerse App initialized successfully');
+            console.log('EduVerse App initialized successfully');
         } catch (err) {
-            console.error('❌ Error initializing EduVerse App:', err);
+            console.error('Error initializing EduVerse App:', err);
         }
     }
 
@@ -91,6 +104,12 @@ class EduVerseApp {
         this.router.register('/courses', () => this.renderCoursesPage());
         this.router.register('/course/:id', (params) => this.renderCoursePage(params));
         this.router.register('/course/:id/:tab', (params) => this.renderCoursePage(params));
+        this.router.register('/course/:courseId/assignment/:assignmentId', (params) => {
+            this.assignmentView.render({
+                courseId: params.courseId,
+                assignmentId: params.assignmentId
+            });
+        });
         this.router.register('/calendar', () => this.renderCalendarPage());
         this.router.register('/grades', () => this.renderGradesPage());
 
@@ -396,13 +415,13 @@ class EduVerseApp {
                         <h3 class="text-lg font-semibold mb-4 text-gray-700">Quick Links</h3>
                         <div class="space-y-2">
                             <a href="#/course/${course.id}/assignments" class="block px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-700">
-                                📝 Assignments
+                                Assignments
                             </a>
                             <a href="#/course/${course.id}/modules" class="block px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-700">
                                 📚 Modules
                             </a>
                             <a href="#/course/${course.id}/grades" class="block px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-gray-700">
-                                📊 Grades
+                                Grades
                             </a>
                         </div>
                     </div>
