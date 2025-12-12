@@ -25,6 +25,9 @@ import { RenderTeacherDashboard, renderTeacherCourse } from './teacher/teacherDa
 // Components
 import { initRoleSwitcher, updateUserDisplay } from './shared/components/roleSwitcher.js';
 
+// Inbox
+import {InboxPage} from "./pages/inboxPages.js";
+
 // Role management
 import { roleManager, getCurrentUser, isTeacher } from './core/roleManager.js';
 
@@ -35,6 +38,7 @@ class EduVerseApp {
         this.router = new SPARouter();
         this.studentDashboard = null;
         this.assignmentView = null;
+        this.inboxPage = null;
         this.elements = {};
 
         // Bind all methods to preserve 'this' context
@@ -60,6 +64,7 @@ class EduVerseApp {
             const appContainer = getElement('main-content');
             this.studentDashboard = new StudentDashboard(appContainer);
             this.assignmentView = new AssignmentView(appContainer);
+            this.inboxPage = new InboxPage(appContainer);
 
             // Register routes
             this.registerRoutes();
@@ -126,9 +131,9 @@ class EduVerseApp {
             const appContainer = this.elements.main;
             renderTeacherCourse(appContainer, params);
         });
+        this.router.register('/inbox', () => this.inboxPage.render());
 
         // Other routes
-        this.router.register('/inbox', () => this.renderComingSoon('Inbox'));
         this.router.register('/groups', () => this.renderComingSoon('Groups'));
         this.router.register('/settings', () => this.renderComingSoon('Settings'));
 
