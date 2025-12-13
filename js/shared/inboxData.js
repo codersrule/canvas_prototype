@@ -166,7 +166,7 @@ export const getConversationById = (id) => {
  * Get courses for filter dropdown
  */
 export const getInboxCourses = () => {
-    const uniqueCourses = [...new Set(inboxConversations.map(conv => conv.course))];
+    const uniqueCourses = [...new Set(inboxConversations.map(conv => conv.course).filter(c => c))];
     return uniqueCourses.map((courseName, index) => ({
         id: index + 1,
         name: courseName

@@ -1,6 +1,6 @@
 /**
  * core/router.js
- * Hash-based SPA Router - Updated with Tab Support
+ * Hash-based SPA Router - Updated with Tab Support and Fixed Active State
  */
 
 export class SPARouter {
@@ -120,16 +120,40 @@ export class SPARouter {
 
     updateActiveNavLink(route) {
         const links = document.querySelectorAll('.nav-link');
+
+        // First, remove active class from ALL links
+        links.forEach(link => {
+            link.classList.remove('active');
+            link.removeAttribute('aria-current');
+        });
+
+        // Then, add active class to the matching link
         links.forEach(link => {
             const page = link.getAttribute('data-page');
             const expectedRoute = this.navMap[page];
 
-            if (expectedRoute === route || (route.startsWith(expectedRoute) && expectedRoute !== '/')) {
+            if (!expectedRoute) return;
+
+            // Special handling for different route types
+            let isActive = false;
+
+            if (expectedRoute === '/') {
+                // Dashboard: exact match only
+                isActive = route === '/';
+            } else if (route.startsWith('/course/')) {
+                // Course routes: activate 'courses' nav item
+                isActive = page === 'courses';
+            } else if (route.startsWith('/teacher/')) {
+                // Teacher routes: activate 'dashboard' nav item
+                isActive = page === 'dashboard';
+            } else {
+                // All other routes: exact match or starts with
+                isActive = route === expectedRoute || route.startsWith(expectedRoute + '/');
+            }
+
+            if (isActive) {
                 link.classList.add('active');
                 link.setAttribute('aria-current', 'page');
-            } else {
-                link.classList.remove('active');
-                link.removeAttribute('aria-current');
             }
         });
     }
