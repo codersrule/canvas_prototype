@@ -28,6 +28,9 @@ import { initRoleSwitcher, updateUserDisplay } from './shared/components/roleSwi
 // Inbox
 import {InboxPage} from "./pages/inboxPages.js";
 
+// GradePage
+import { GradesPage } from "./pages/gradesPage.js";
+
 // Role management
 import { roleManager, getCurrentUser, isTeacher } from './core/roleManager.js';
 
@@ -39,6 +42,7 @@ class EduVerseApp {
         this.studentDashboard = null;
         this.assignmentView = null;
         this.inboxPage = null;
+        this.gradesPage = null;
         this.elements = {};
 
         // Bind all methods to preserve 'this' context
@@ -65,6 +69,7 @@ class EduVerseApp {
             this.studentDashboard = new StudentDashboard(appContainer);
             this.assignmentView = new AssignmentView(appContainer);
             this.inboxPage = new InboxPage(appContainer);
+            this.gradesPage = new GradesPage(appContainer);
 
             // Register routes
             this.registerRoutes();
@@ -950,100 +955,7 @@ class EduVerseApp {
     }
 
     renderGradesPage() {
-        const appContainer = this.elements.main;
-
-        const courses = Object.values(courseDetails);
-        let totalPoints = 0;
-        let earnedPoints = 0;
-        let totalAssignments = 0;
-        let completedAssignments = 0;
-
-        courses.forEach(course => {
-            course.assignments.forEach(assignment => {
-                totalAssignments++;
-                totalPoints += assignment.points;
-                if (assignment.grade !== null) {
-                    completedAssignments++;
-                    earnedPoints += assignment.grade;
-                }
-            });
-        });
-
-        const overallGrade = totalPoints > 0 ? ((earnedPoints / totalPoints) * 100).toFixed(1) : 0;
-
-        appContainer.innerHTML = `
-            <div class="p-6 fade-in">
-                <h1 class="text-3xl font-bold text-gray-900 mb-6">Grades</h1>
-
-                <!-- Overall Stats -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <div class="text-sm text-gray-600 mb-1">Overall Grade</div>
-                        <div class="text-3xl font-bold text-blue-600">${overallGrade}%</div>
-                    </div>
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <div class="text-sm text-gray-600 mb-1">Completed</div>
-                        <div class="text-3xl font-bold text-green-600">${completedAssignments}/${totalAssignments}</div>
-                    </div>
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <div class="text-sm text-gray-600 mb-1">Total Points</div>
-                        <div class="text-3xl font-bold text-purple-600">${earnedPoints}/${totalPoints}</div>
-                    </div>
-                </div>
-
-                <!-- Course Grades -->
-                <div class="space-y-6">
-                    ${courses.map(course => {
-            const courseAssignments = course.assignments.filter(a => a.grade !== null);
-            const courseTotalPoints = courseAssignments.reduce((sum, a) => sum + a.points, 0);
-            const courseEarnedPoints = courseAssignments.reduce((sum, a) => sum + a.grade, 0);
-            const courseGrade = courseTotalPoints > 0 ? ((courseEarnedPoints / courseTotalPoints) * 100).toFixed(1) : '--';
-
-            return `
-                            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                                <div class="bg-gradient-to-r ${course.color} p-4 text-white">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <div class="text-sm opacity-90">${escapeHtml(course.code)}</div>
-                                            <div class="text-xl font-bold">${escapeHtml(course.name)}</div>
-                                        </div>
-                                        <div class="text-3xl font-bold">${courseGrade}%</div>
-                                    </div>
-                                </div>
-                                <div class="p-6">
-                                    <div class="space-y-3">
-                                        ${course.assignments.map(assignment => `
-                                            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                                                <div class="flex-1">
-                                                    <div class="font-medium text-gray-900">${escapeHtml(assignment.title)}</div>
-                                                    <div class="text-sm text-gray-600 mt-1">
-                                                        ${assignment.submitted ?
-                (assignment.grade !== null ?
-                        `Graded • ${escapeHtml(assignment.dueDate)}` :
-                        `Submitted • ${escapeHtml(assignment.dueDate)}`
-                ) :
-                `Not submitted • Due ${escapeHtml(assignment.dueDate)}`
-            }
-                                                    </div>
-                                                </div>
-                                                <div class="text-right">
-                                                    ${assignment.grade !== null ?
-                `<div class="text-2xl font-bold ${assignment.grade >= assignment.points * 0.9 ? 'text-green-600' : assignment.grade >= assignment.points * 0.7 ? 'text-yellow-600' : 'text-red-600'}">${assignment.grade}/${assignment.points}</div>
-                                                         <div class="text-sm text-gray-600">${((assignment.grade / assignment.points) * 100).toFixed(1)}%</div>`
-                :
-                `<div class="text-gray-400">--/${assignment.points}</div>`
-            }
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-        }).join('')}
-                </div>
-            </div>
-        `;
+        this.gradesPage.render();
     }
 
     renderComingSoon(title) {
