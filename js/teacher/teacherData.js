@@ -178,8 +178,8 @@ export const courseAnalytics = {
             { type: 'discussion', student: 'Carol Wang', topic: 'Week 4 Discussion', time: '5 hours ago' }
         ],
         upcomingDeadlines: [
-            { assignment: 'Assignment 3', dueDate: 'Nov 5 at 11:59pm', submitted: 45, total: 150 },
-            { assignment: 'Assignment 4', dueDate: 'Nov 19 at 11:59pm', submitted: 12, total: 150 }
+            { assignment: 'Assignment 3', assignmentId: 3, dueDate: 'Nov 5 at 11:59pm', submitted: 45, total: 150 },
+            { assignment: 'Assignment 4', assignmentId: 4, dueDate: 'Nov 19 at 11:59pm', submitted: 12, total: 150 }
         ],
         performanceMetrics: {
             averageTimeToComplete: '4.5 hours',
@@ -206,7 +206,7 @@ export const courseAnalytics = {
             { type: 'submission', student: 'Grace Chen', assignment: 'Homework 7', time: '4 hours ago' }
         ],
         upcomingDeadlines: [
-            { assignment: 'Homework 7', dueDate: 'Nov 6 at 11:59pm', submitted: 38, total: 120 }
+            { assignment: 'Homework 7', assignmentId: 3, dueDate: 'Nov 6 at 11:59pm', submitted: 38, total: 120 }
         ],
         performanceMetrics: {
             averageTimeToComplete: '5.2 hours',
@@ -214,14 +214,80 @@ export const courseAnalytics = {
             lateSubmissions: 12,
             resubmissions: 8
         }
+    },
+    3: {
+        totalStudents: 25,
+        activeStudents: 24,
+        averageGrade: 84,
+        assignmentCompletion: 75,
+        attendanceRate: 92,
+        gradeDistribution: { 'A': 8, 'B': 10, 'C': 5, 'D': 1, 'F': 1 },
+        recentActivity: [],
+        upcomingDeadlines: [
+            { assignment: 'Essay Draft 2', assignmentId: 2, dueDate: 'Nov 8 at 11:59pm', submitted: 5, total: 25 }
+        ],
+        performanceMetrics: {}
+    },
+    4: {
+        totalStudents: 80,
+        activeStudents: 78,
+        averageGrade: 79,
+        assignmentCompletion: 82,
+        attendanceRate: 88,
+        gradeDistribution: { 'A': 15, 'B': 30, 'C': 25, 'D': 7, 'F': 3 },
+        recentActivity: [],
+        upcomingDeadlines: [
+            { assignment: 'Problem Set 4: Circuit Design', assignmentId: 2, dueDate: 'Nov 10 at 11:59pm', submitted: 12, total: 80 }
+        ],
+        performanceMetrics: {}
+    },
+    5: {
+        totalStudents: 95,
+        activeStudents: 90,
+        averageGrade: 81,
+        assignmentCompletion: 80,
+        attendanceRate: 85,
+        gradeDistribution: { 'A': 20, 'B': 35, 'C': 28, 'D': 8, 'F': 4 },
+        recentActivity: [],
+        upcomingDeadlines: [
+            { assignment: 'Problem Set 5: Rotational Motion', assignmentId: 2, dueDate: 'Nov 12 at 11:59pm', submitted: 8, total: 95 }
+        ],
+        performanceMetrics: {}
+    },
+    6: {
+        totalStudents: 40,
+        activeStudents: 38,
+        averageGrade: 83,
+        assignmentCompletion: 78,
+        attendanceRate: 90,
+        gradeDistribution: { 'A': 12, 'B': 15, 'C': 10, 'D': 2, 'F': 1 },
+        recentActivity: [],
+        upcomingDeadlines: [
+            { assignment: 'Reading Response 5', assignmentId: 2, dueDate: 'Nov 15 at 11:59pm', submitted: 3, total: 40 }
+        ],
+        performanceMetrics: {}
     }
+};
+
+const defaultAnalytics = {
+    totalStudents: 0,
+    activeStudents: 0,
+    averageGrade: 0,
+    assignmentCompletion: 0,
+    attendanceRate: 0,
+    gradeDistribution: {},
+    recentActivity: [],
+    upcomingDeadlines: [],
+    performanceMetrics: {},
 };
 
 /**
  * Get analytics for a course
  */
 export const getCourseAnalytics = (courseId) => {
-    return courseAnalytics[courseId] || null;
+    const raw = courseAnalytics[courseId];
+    if (raw) return raw;
+    return { ...defaultAnalytics };
 };
 
 /**
@@ -304,6 +370,53 @@ export const announcementDrafts = [
  */
 export const getTotalPendingCount = () => {
     return Object.values(pendingGrading).reduce((sum, items) => sum + items.length, 0);
+};
+
+/**
+ * Get upcoming deadlines across all courses for dashboard (7 days, up to 20 items)
+ */
+export const getUpcomingDeadlinesForDashboard = (courses) => {
+    const year = new Date().getFullYear() || 2025;
+    const all = [];
+
+    courses.forEach((course) => {
+        const analytics = getCourseAnalytics(String(course.id));
+        const total = analytics.totalStudents || 0;
+        const deadlines = analytics.upcomingDeadlines || [];
+        deadlines.forEach((d) => {
+            all.push({
+                ...d,
+                course,
+                courseId: course.id,
+                assignmentId: d.assignmentId,
+            });
+        });
+        if (course.assignments) {
+            course.assignments.forEach((a) => {
+                const inAnalytics = deadlines.some(
+                    (d) => d.assignmentId === a.id || d.assignment === a.title
+                );
+                if (!inAnalytics) {
+                    all.push({
+                        assignment: a.title,
+                        assignmentId: a.id,
+                        dueDate: a.dueDate,
+                        submitted: 0,
+                        total,
+                        course,
+                        courseId: course.id,
+                    });
+                }
+            });
+        }
+    });
+
+    all.sort((a, b) => {
+        const da = new Date((a.dueDate || '') + ' ' + year);
+        const db = new Date((b.dueDate || '') + ' ' + year);
+        return da.getTime() - db.getTime();
+    });
+    return all.slice(0, 20);
 };
 
 /**

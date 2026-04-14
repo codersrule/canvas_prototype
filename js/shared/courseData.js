@@ -62,8 +62,41 @@ export const courseDetails = {
             { id: 5, title: 'Week 5: Lists and Tuples', completed: false, items: 8 }
         ],
         announcements: [
-            { id: 1, title: 'Midterm Exam Schedule', date: '2 hours ago', content: 'The midterm exam will be held on November 15th in our regular classroom.' },
-            { id: 2, title: 'Office Hours Change', date: '1 day ago', content: 'This week\'s Thursday office hours moved to Friday 3-5pm.' }
+            {
+                id: 1,
+                title: 'Update: Mandatory Requirement for Tomorrow',
+                date: '2 hours ago',
+                postedAt: '2026-02-11T17:26:00',
+                authorName: 'Carly Suzanne Stevenson',
+                authorInitials: 'CS',
+                authorRole: 'AUTHOR | TEACHER',
+                authorEmail: 'CarlySS@uci.edu',
+                authorTitle: 'Senior Career Counselor',
+                sections: 2,
+                content: 'MECPS Students,\n\nYou will see a **mandatory event** listed on the syllabus for tomorrow. Please note: The event is **NOT** be an in-person class session. There is a **mandatory sign-up** for the Mock Interview Series. Sign-up links will be sent **by end of day Friday**.',
+                signatureLine: 'Carly Stevenson, Senior Career Counselor'
+            },
+            {
+                id: 2,
+                title: 'Update on Tonight\'s Suggested Event + 1:1 Career Advising Availability',
+                date: '1 day ago',
+                postedAt: '2026-01-22T08:16:00',
+                authorName: 'Carly Suzanne Stevenson',
+                authorInitials: 'CS',
+                authorRole: 'AUTHOR | TEACHER',
+                authorEmail: 'CarlySS@uci.edu',
+                authorTitle: 'Senior Career Counselor',
+                sections: 2,
+                content: 'Hi MECPS students,\n\nThe syllabus lists a Suggested Event for tonight: Industry Night (RVTech). Please note the updated timing and location. I am also available for 1:1 career advising this week—book a slot via the link in the syllabus.',
+                signatureLine: 'Carly Stevenson, Senior Career Counselor'
+            },
+            {
+                id: 3,
+                title: 'Midterm Exam Schedule',
+                date: '3 days ago',
+                postedAt: '2026-02-08T10:00:00',
+                content: 'The midterm exam will be held on November 15th in our regular classroom.'
+            }
         ]
     },
     2: {
