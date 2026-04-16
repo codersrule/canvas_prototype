@@ -1,9 +1,16 @@
 /**
  * API client for Classroom backend.
  * Uses VITE_API_URL in production; falls back to mock data when API is unavailable.
+ *
+ * On Render (or any static host): set VITE_API_URL to your Web Service URL
+ * (e.g. https://your-api.onrender.com) in the static site's **Environment** so it
+ * is available at **build** time, then redeploy.
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(
+  /\/$/,
+  '',
+)
 
 function getToken() {
   try {
@@ -16,6 +23,16 @@ function getToken() {
   }
 }
 
+function networkErrorMessage() {
+  const prod = import.meta.env.PROD
+  const pointsToLocal =
+    API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1')
+  if (prod && pointsToLocal) {
+    return `Cannot reach the API at ${API_BASE}. In production, set environment variable VITE_API_URL to your Render Web Service URL (https://your-api.onrender.com) on the static site, then redeploy so the build embeds it.`
+  }
+  return `Cannot reach the API at ${API_BASE}. Confirm the backend is running on Render, the URL is correct, and use HTTPS for both site and API.`
+}
+
 async function request(path, options = {}) {
   const token = getToken()
   const headers = {
@@ -24,7 +41,13 @@ async function request(path, options = {}) {
     ...options.headers,
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  let res
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  } catch (e) {
+    const msg = e?.message === 'Failed to fetch' ? networkErrorMessage() : e?.message || 'Network error'
+    throw new Error(msg)
+  }
 
   if (res.status === 401) {
     localStorage.removeItem('classroom_auth')
