@@ -1,2 +1,2 @@
-# SPA fallback for Netlify-style hosts (including Render static sites)
+# SPA fallback for Netlify-style hosts. Render static sites need the dashboard rewrite rule.
 /*    /index.html   200

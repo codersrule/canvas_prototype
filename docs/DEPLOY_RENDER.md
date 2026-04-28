@@ -66,9 +66,17 @@ Do **not** set `VITE_API_URL` on the static site. Rebuild. Login then uses the *
 
 Client-side routers need the server to serve `index.html` for unknown paths.
 
-This repo includes `frontend/public/_redirects` so hosts that honor it (including many static setups) rewrite `/*` → `/index.html`.
+Render static sites need a rewrite rule configured in the dashboard:
 
-If your host ignores `_redirects`, configure **SPA / rewrite** in the dashboard so all routes serve `index.html` with status 200.
+| Field | Value |
+|-------|-------|
+| Source | `/*` |
+| Destination | `/index.html` |
+| Action | `Rewrite` |
+
+This serves the React app for direct URLs like `/teacher`, `/courses`, and `/teacher/settings`. The browser URL stays the same, and the client-side router renders the matching page.
+
+This repo also includes `frontend/public/_redirects` for Netlify-style hosts, but Render uses dashboard redirect/rewrite rules.
 
 ---
 
