@@ -44,7 +44,9 @@ function buildActivityMessage(activity) {
 
 function getCourseActivityCounts(course) {
   const analytics = getCourseAnalytics(String(course.id));
-  const assignments = course.assignments?.length || 0;
+  const assignments = Array.isArray(course.assignments)
+    ? course.assignments.length
+    : Number(course.assignments || 0);
   const announcements = course.announcements?.length || 0;
   return {
     assignments: Math.min(assignments, 99),

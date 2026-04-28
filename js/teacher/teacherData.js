@@ -391,7 +391,7 @@ export const getUpcomingDeadlinesForDashboard = (courses) => {
                 assignmentId: d.assignmentId,
             });
         });
-        if (course.assignments) {
+        if (Array.isArray(course.assignments)) {
             course.assignments.forEach((a) => {
                 const inAnalytics = deadlines.some(
                     (d) => d.assignmentId === a.id || d.assignment === a.title
