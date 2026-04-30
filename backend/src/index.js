@@ -1,18 +1,18 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { config } from "./config.js";
 import authRoutes from "./routes/auth.js";
 import courseRoutes from "./routes/courses.js";
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 // ---------------------------------------------------------------------------
-// CORS — only allow requests from the configured frontend origin.
+// CORS -- only allow requests from the configured frontend origin.
 // In development, set FRONTEND_URL=http://localhost:5173 in your .env file.
 // In production, set it to your deployed frontend domain (e.g. https://app.example.com).
 // ---------------------------------------------------------------------------
-const ALLOWED_ORIGINS = (process.env.FRONTEND_URL || "http://localhost:5173")
+const ALLOWED_ORIGINS = config.frontendUrl
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);
@@ -22,7 +22,7 @@ app.use(
     origin(origin, callback) {
       // Allow server-to-server / curl requests (no Origin header) only in dev
       if (!origin) {
-        if (process.env.NODE_ENV === "production") {
+        if (config.isProduction) {
           return callback(new Error("CORS: missing Origin header"), false);
         }
         return callback(null, true);
@@ -45,7 +45,7 @@ app.get("/", (req, res) => {
   <h1>Classroom API</h1>
   <p>This URL is the <strong>backend</strong> only. Open your <strong>static site</strong> URL to use the app.</p>
   <ul>
-    <li><a href="/api/health">GET /api/health</a> — JSON health check</li>
+    <li><a href="/api/health">GET /api/health</a> -- JSON health check</li>
   </ul>
 </body></html>`);
 });
@@ -57,6 +57,6 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Classroom API" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Classroom API running on http://localhost:${PORT}`);
+app.listen(config.port, () => {
+  console.log(`Classroom API running on http://localhost:${config.port}`);
 });

@@ -1,42 +1,42 @@
-import jwt from 'jsonwebtoken'
-import { PrismaClient } from '@prisma/client'
+import jwt from "jsonwebtoken";
+import { PrismaClient } from "@prisma/client";
+import { config } from "../config.js";
 
-const prisma = new PrismaClient()
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret'
+const prisma = new PrismaClient();
 
 export function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token) {
-    return res.status(401).json({ error: 'Authentication required' })
+    return res.status(401).json({ error: "Authentication required" });
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET)
-    req.userId = decoded.userId
-    next()
+    const decoded = jwt.verify(token, config.jwtSecret);
+    req.userId = decoded.userId;
+    next();
   } catch {
-    return res.status(401).json({ error: 'Invalid or expired token' })
+    return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
 
 export async function attachUser(req, res, next) {
-  const authHeader = req.headers.authorization
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token) {
-    return next()
+    return next();
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET)
+    const decoded = jwt.verify(token, config.jwtSecret);
     req.user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: { id: true, email: true, name: true, role: true },
-    })
+    });
   } catch {
-    // ignore
+    // ignore -- token may be expired or malformed; unauthenticated access continues
   }
-  next()
+  next();
 }

@@ -1,60 +1,58 @@
-import { Router } from 'express'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import { PrismaClient } from '@prisma/client'
-import { authMiddleware } from '../middleware/auth.js'
+import { Router } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { PrismaClient } from "@prisma/client";
+import { config } from "../config.js";
+import { authMiddleware } from "../middleware/auth.js";
 
-const router = Router()
-const prisma = new PrismaClient()
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret'
+const router = Router();
+const prisma = new PrismaClient();
 
-router.get('/me', authMiddleware, async (req, res) => {
+router.get("/me", authMiddleware, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: { id: true, email: true, name: true, role: true },
-    })
-    if (!user) return res.status(404).json({ error: 'User not found' })
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
     res.json({
       ...user,
       initials: user.name
         .split(/\s+/)
         .map((s) => s[0])
-        .join('')
+        .join("")
         .slice(0, 2)
         .toUpperCase(),
-    })
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch user' })
+    res.status(500).json({ error: "Failed to fetch user" });
   }
-})
+});
 
-router.post('/login', async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body
+    const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' })
+      return res.status(400).json({ error: "Email and password required" });
     }
 
     const user = await prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() },
-    })
+    });
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' })
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const valid = await bcrypt.compare(password, user.password)
+    const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      return res.status(401).json({ error: 'Invalid email or password' })
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const token = jwt.sign(
-      { userId: user.id },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    )
+    const token = jwt.sign({ userId: user.id }, config.jwtSecret, {
+      expiresIn: config.jwtExpiresIn,
+    });
 
     res.json({
       token,
@@ -66,15 +64,15 @@ router.post('/login', async (req, res) => {
         initials: user.name
           .split(/\s+/)
           .map((s) => s[0])
-          .join('')
+          .join("")
           .slice(0, 2)
           .toUpperCase(),
       },
-    })
+    });
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Login failed' })
+    console.error(err);
+    res.status(500).json({ error: "Login failed" });
   }
-})
+});
 
-export default router
+export default router;
