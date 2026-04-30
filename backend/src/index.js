@@ -2,15 +2,23 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { config } from "./config.js";
+import { loginLimiter, apiLimiter } from "./middleware/rateLimiter.js";
 import authRoutes from "./routes/auth.js";
 import courseRoutes from "./routes/courses.js";
 
 const app = express();
 
 // ---------------------------------------------------------------------------
+// Trust proxy -- required so express-rate-limit reads the real client IP
+// from X-Forwarded-For when running behind nginx, Render, Railway, etc.
+// Set to the number of trusted proxy hops in your infrastructure.
+// ---------------------------------------------------------------------------
+if (config.isProduction) {
+  app.set("trust proxy", 1);
+}
+
+// ---------------------------------------------------------------------------
 // CORS -- only allow requests from the configured frontend origin.
-// In development, set FRONTEND_URL=http://localhost:5173 in your .env file.
-// In production, set it to your deployed frontend domain (e.g. https://app.example.com).
 // ---------------------------------------------------------------------------
 const ALLOWED_ORIGINS = config.frontendUrl
   .split(",")
@@ -20,7 +28,6 @@ const ALLOWED_ORIGINS = config.frontendUrl
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow server-to-server / curl requests (no Origin header) only in dev
       if (!origin) {
         if (config.isProduction) {
           return callback(new Error("CORS: missing Origin header"), false);
@@ -38,6 +45,17 @@ app.use(
 
 app.use(express.json());
 
+// ---------------------------------------------------------------------------
+// Rate limiting
+// loginLimiter  -- tight limit on the login endpoint only
+// apiLimiter    -- broad safety-net on all /api/* routes
+// ---------------------------------------------------------------------------
+app.use("/api/auth/login", loginLimiter);
+app.use("/api", apiLimiter);
+
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
 app.get("/", (req, res) => {
   res.type("html").send(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Classroom API</title></head>
