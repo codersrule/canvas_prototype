@@ -40,7 +40,7 @@ export function LoginPage({ role: roleProp = "student" }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-linear-to-br from-gray-800 via-gray-700 to-gray-800">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">Classroom</h1>

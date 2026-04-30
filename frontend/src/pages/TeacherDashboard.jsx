@@ -82,8 +82,7 @@ export function TeacherDashboardPage() {
     return courses.filter((c) => favorites.has(String(c.id)));
   }, [courses, favorites]);
 
-  const displayCourses =
-    dashboardView === "card" ? favoritedCourses : courses;
+  const displayCourses = dashboardView === "card" ? favoritedCourses : courses;
 
   const totalPending = USE_API ? 0 : getTotalPendingCount();
 
@@ -107,21 +106,24 @@ export function TeacherDashboardPage() {
       courses
         .flatMap((course) => {
           const analytics = getCourseAnalytics(String(course.id));
-          return (analytics?.recentActivity || []).map((a) => ({ ...a, course }));
+          return (analytics?.recentActivity || []).map((a) => ({
+            ...a,
+            course,
+          }));
         })
         .slice(0, 20),
-    [courses]
+    [courses],
   );
 
   const pendingItems = courses
     .flatMap((course) =>
-      getPendingGrading(String(course.id)).map((p) => ({ ...p, course }))
+      getPendingGrading(String(course.id)).map((p) => ({ ...p, course })),
     )
     .slice(0, 5);
 
   const upcomingDeadlines = useMemo(
     () => getUpcomingDeadlinesForDashboard(courses),
-    [courses]
+    [courses],
   );
 
   const toggleFavorite = (courseId) => {
@@ -148,26 +150,30 @@ export function TeacherDashboardPage() {
   return (
     <div className="p-6">
       {apiError && (
-        <div className="bg-red-50 text-red-700 rounded-lg p-4 mb-6">{apiError}</div>
+        <div className="bg-red-50 text-red-700 rounded-lg p-4 mb-6">
+          {apiError}
+        </div>
       )}
-      <div className="bg-gradient-to-r from-gray-700 to-gray-600 text-white rounded-xl p-6 mb-6 shadow-md">
+      <div className="bg-linear-to-r from-gray-700 to-gray-600 text-white rounded-xl p-6 mb-6 shadow-md">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">
               Welcome, {user?.name || "Instructor"}!
             </h1>
             <p className="text-gray-300">
-              Teaching {courses.length} courses • {totalPending} assignments pending
-              review
+              Teaching {courses.length} courses • {totalPending} assignments
+              pending review
             </p>
           </div>
-          <div className="flex items-center gap-1" role="group" aria-label="Dashboard view">
+          <div
+            className="flex items-center gap-1"
+            role="group"
+            aria-label="Dashboard view"
+          >
             <button
               onClick={() => setDashboardView("card")}
               className={`px-3 py-1.5 rounded text-sm ${
-                dashboardView === "card"
-                  ? "bg-white/20"
-                  : "hover:bg-white/10"
+                dashboardView === "card" ? "bg-white/20" : "hover:bg-white/10"
               }`}
               title="Card View"
             >
@@ -176,9 +182,7 @@ export function TeacherDashboardPage() {
             <button
               onClick={() => setDashboardView("list")}
               className={`px-3 py-1.5 rounded text-sm ${
-                dashboardView === "list"
-                  ? "bg-white/20"
-                  : "hover:bg-white/10"
+                dashboardView === "list" ? "bg-white/20" : "hover:bg-white/10"
               }`}
               title="List View"
             >
@@ -204,7 +208,9 @@ export function TeacherDashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white rounded-lg shadow-md p-5">
               <p className="text-sm text-gray-600">Total Students</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{totalStudents}</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">
+                {totalStudents}
+              </p>
             </div>
             <Link
               href={
@@ -244,37 +250,78 @@ export function TeacherDashboardPage() {
                       <button
                         onClick={() => toggleFavorite(course.id)}
                         className="absolute top-2 right-2 z-10 p-1 rounded-full hover:bg-white/20 text-white"
-                        aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                        aria-label={
+                          isFav ? "Remove from favorites" : "Add to favorites"
+                        }
                       >
                         {isFav ? (
-                          <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                          <svg
+                            className="w-5 h-5 fill-current"
+                            viewBox="0 0 24 24"
+                          >
                             <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                           </svg>
                         ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                            />
                           </svg>
                         )}
                       </button>
                       <Link href={`/teacher/course/${course.id}`}>
                         <a
-                          className={`block rounded-xl p-5 hover:shadow-lg transition-all border-2 bg-gradient-to-r ${course.color || "from-gray-500 to-gray-600"} text-white ${
+                          className={`block rounded-xl p-5 hover:shadow-lg transition-all border-2 bg-linear-to-r ${course.color || "from-gray-500 to-gray-600"} text-white ${
                             isFav ? "border-transparent" : "border-gray-200"
                           }`}
                         >
-                          <h3 className="font-semibold text-lg mb-1">{course.name}</h3>
-                          <p className="text-sm opacity-90 mb-3">{course.code} • {course.term}</p>
+                          <h3 className="font-semibold text-lg mb-1">
+                            {course.name}
+                          </h3>
+                          <p className="text-sm opacity-90 mb-3">
+                            {course.code} • {course.term}
+                          </p>
                           <div className="flex gap-4 text-sm">
-                            <span className="flex items-center gap-1" title="Assignments">
-                              <svg className="w-4 h-4 opacity-80" fill="currentColor" viewBox="0 0 20 20">
+                            <span
+                              className="flex items-center gap-1"
+                              title="Assignments"
+                            >
+                              <svg
+                                className="w-4 h-4 opacity-80"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
                                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                                <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clipRule="evenodd" />
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
                               {counts.assignments}
                             </span>
-                            <span className="flex items-center gap-1" title="Announcements">
-                              <svg className="w-4 h-4 opacity-80" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a3 3 0 000 6h.28l1.771 5.316A1 1 0 008 18h1a1 1 0 001-1v-4.382l6.553 3.276A1 1 0 0018 15V3z" clipRule="evenodd" />
+                            <span
+                              className="flex items-center gap-1"
+                              title="Announcements"
+                            >
+                              <svg
+                                className="w-4 h-4 opacity-80"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a3 3 0 000 6h.28l1.771 5.316A1 1 0 008 18h1a1 1 0 001-1v-4.382l6.553 3.276A1 1 0 0018 15V3z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
                               {counts.announcements}
                             </span>
@@ -291,14 +338,18 @@ export function TeacherDashboardPage() {
                 })}
               </div>
               {displayCourses.length === 0 && (
-                <p className="text-sm text-gray-500">Star courses to show them here.</p>
+                <p className="text-sm text-gray-500">
+                  Star courses to show them here.
+                </p>
               )}
             </div>
           )}
 
           {dashboardView === "list" && (
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">My Courses</h2>
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">
+                My Courses
+              </h2>
               <div className="space-y-2">
                 {displayCourses.map((course) => {
                   const analytics = getCourseAnalytics(String(course.id));
@@ -312,7 +363,9 @@ export function TeacherDashboardPage() {
                         <span className="text-sm text-gray-600">
                           {analytics?.totalStudents || 0} students
                           {pending > 0 && (
-                            <span className="ml-2 text-orange-600">• {pending} to grade</span>
+                            <span className="ml-2 text-orange-600">
+                              • {pending} to grade
+                            </span>
                           )}
                         </span>
                       </a>
@@ -390,7 +443,9 @@ export function TeacherDashboardPage() {
 
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-700">Quick Actions</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-700">
+              Quick Actions
+            </h3>
             <div className="space-y-2">
               <button
                 onClick={() => setAnnouncementModalOpen(true)}
@@ -418,9 +473,7 @@ export function TeacherDashboardPage() {
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-700">
-              To Do
-            </h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-700">To Do</h3>
             {totalPending > 0 ? (
               <>
                 <div className="space-y-3">
@@ -436,7 +489,9 @@ export function TeacherDashboardPage() {
                         <p className="text-xs text-gray-600 mt-1">
                           {item.course.code} • {item.assignmentName}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">{item.timeAgo}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {item.timeAgo}
+                        </p>
                       </a>
                     </Link>
                   ))}
@@ -454,7 +509,9 @@ export function TeacherDashboardPage() {
                 </Link>
               </>
             ) : (
-              <p className="text-sm text-gray-500 text-center py-4">All caught up!</p>
+              <p className="text-sm text-gray-500 text-center py-4">
+                All caught up!
+              </p>
             )}
           </div>
 
@@ -472,9 +529,13 @@ export function TeacherDashboardPage() {
                     <p className="text-sm font-medium text-gray-900">
                       {deadline.assignment}
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">{deadline.course?.code}</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {deadline.course?.code}
+                    </p>
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-red-600">{deadline.dueDate}</span>
+                      <span className="text-xs text-red-600">
+                        {deadline.dueDate}
+                      </span>
                       <span className="text-xs text-gray-500">
                         {deadline.submitted}/{deadline.total} submitted
                       </span>
