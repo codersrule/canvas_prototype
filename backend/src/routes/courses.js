@@ -187,7 +187,7 @@ router.get(
           id: a.id,
           title: a.title,
           description: a.description,
-          dueDate: a.dueDate,
+          dueDate: a.dueDate ? a.dueDate.toISOString() : null,
           points: a.points,
         })),
         modules: c.modules.map((m) => ({
