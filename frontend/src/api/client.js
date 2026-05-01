@@ -7,88 +7,104 @@
  * is available at **build** time, then redeploy.
  */
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(
-  /\/$/,
-  '',
-)
+const API_BASE = (
+  import.meta.env.VITE_API_URL || "http://localhost:3001"
+).replace(/\/$/, "");
 
 function getToken() {
   try {
-    const auth = localStorage.getItem('classroom_auth')
-    if (!auth) return null
-    const parsed = JSON.parse(auth)
-    return parsed.token ?? null
+    const auth = localStorage.getItem("classroom_auth");
+    if (!auth) return null;
+    const parsed = JSON.parse(auth);
+    return parsed.token ?? null;
   } catch {
-    return null
+    return null;
   }
 }
 
 function networkErrorMessage() {
-  const prod = import.meta.env.PROD
+  const prod = import.meta.env.PROD;
   const pointsToLocal =
-    API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1')
+    API_BASE.includes("localhost") || API_BASE.includes("127.0.0.1");
   if (prod && pointsToLocal) {
-    return `Cannot reach the API at ${API_BASE}. In production, set environment variable VITE_API_URL to your Render Web Service URL (https://your-api.onrender.com) on the static site, then redeploy so the build embeds it.`
+    return `Cannot reach the API at ${API_BASE}. In production, set environment variable VITE_API_URL to your Render Web Service URL (https://your-api.onrender.com) on the static site, then redeploy so the build embeds it.`;
   }
-  return `Cannot reach the API at ${API_BASE}. Confirm the backend is running on Render, the URL is correct, and use HTTPS for both site and API.`
+  return `Cannot reach the API at ${API_BASE}. Confirm the backend is running on Render, the URL is correct, and use HTTPS for both site and API.`;
 }
 
 async function request(path, options = {}) {
-  const token = getToken()
+  const token = getToken();
   const headers = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
-  }
+  };
 
-  let res
+  let res;
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   } catch (e) {
-    const msg = e?.message === 'Failed to fetch' ? networkErrorMessage() : e?.message || 'Network error'
-    throw new Error(msg)
+    const msg =
+      e?.message === "Failed to fetch"
+        ? networkErrorMessage()
+        : e?.message || "Network error";
+    throw new Error(msg);
   }
 
   if (res.status === 401) {
-    localStorage.removeItem('classroom_auth')
-    throw new Error('Session expired')
+    localStorage.removeItem("classroom_auth");
+    throw new Error("Session expired");
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error || `Request failed: ${res.status}`)
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Request failed: ${res.status}`);
   }
 
-  return res.json().catch(() => ({}))
+  return res.json().catch(() => ({}));
 }
 
 export const api = {
   async login(email, password) {
-    return request('/api/auth/login', {
-      method: 'POST',
+    return request("/api/auth/login", {
+      method: "POST",
       body: JSON.stringify({ email, password }),
-    })
+    });
   },
 
   async getMe() {
-    return request('/api/auth/me')
+    return request("/api/auth/me");
   },
 
   async getCourses(role) {
-    const qs = role === 'teacher' ? '?role=teacher' : ''
-    return request(`/api/courses${qs}`)
+    const qs = role === "teacher" ? "?role=teacher" : "";
+    return request(`/api/courses${qs}`);
   },
 
   async getCourse(id) {
-    return request(`/api/courses/${id}`)
+    return request(`/api/courses/${id}`);
   },
 
-  async getAvailableCourses(query = '') {
-    const qs = query ? `?q=${encodeURIComponent(query)}` : ''
-    return request(`/api/courses/available${qs}`)
+  async getAvailableCourses(query = "") {
+    const qs = query ? `?q=${encodeURIComponent(query)}` : "";
+    return request(`/api/courses/available${qs}`);
   },
 
   async enrollInCourse(courseId) {
-    return request(`/api/courses/${courseId}/enroll`, { method: 'POST' })
+    return request(`/api/courses/${courseId}/enroll`, { method: "POST" });
   },
-}
+
+  async createAssignment(courseId, { title, description, dueDate, points }) {
+    return request(`/api/courses/${courseId}/assignments`, {
+      method: "POST",
+      body: JSON.stringify({ title, description, dueDate, points }),
+    });
+  },
+
+  async createAnnouncement(courseId, { title, content }) {
+    return request(`/api/courses/${courseId}/announcements`, {
+      method: "POST",
+      body: JSON.stringify({ title, content }),
+    });
+  },
+};

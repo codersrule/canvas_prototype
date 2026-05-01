@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { query, param } from "express-validator";
+import { query, param, body } from "express-validator";
 import { PrismaClient } from "@prisma/client";
 import { authMiddleware } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
@@ -211,3 +211,136 @@ router.get(
 );
 
 export default router;
+
+// ---------------------------------------------------------------------------
+// POST /api/courses/:id/assignments  (teacher only)
+// ---------------------------------------------------------------------------
+router.post(
+  "/:id/assignments",
+  authMiddleware,
+  param("id")
+    .trim()
+    .notEmpty()
+    .withMessage("Course ID is required")
+    .isLength({ max: 50 }),
+  body("title")
+    .trim()
+    .notEmpty()
+    .withMessage("Title is required")
+    .isLength({ max: 200 })
+    .withMessage("Title must be 200 characters or fewer"),
+  body("description")
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ max: 5000 })
+    .withMessage("Description too long"),
+  body("dueDate")
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage("dueDate must be a valid ISO 8601 date")
+    .toDate(),
+  body("points")
+    .optional()
+    .isInt({ min: 0, max: 10000 })
+    .withMessage("Points must be between 0 and 10000")
+    .toInt(),
+  validate,
+  async (req, res) => {
+    try {
+      const courseId = req.params.id;
+
+      // verify the requester is a teacher in this course
+      const enrollment = await prisma.enrollment.findUnique({
+        where: { userId_courseId: { userId: req.userId, courseId } },
+      });
+      if (!enrollment || enrollment.role !== "teacher") {
+        return res
+          .status(403)
+          .json({ error: "Only course teachers can create assignments" });
+      }
+
+      const { title, description, dueDate, points } = req.body;
+      const assignment = await prisma.assignment.create({
+        data: {
+          courseId,
+          title,
+          description: description || null,
+          dueDate: dueDate || null,
+          points: points ?? 100,
+        },
+      });
+
+      res.status(201).json({
+        id: assignment.id,
+        title: assignment.title,
+        description: assignment.description,
+        dueDate: assignment.dueDate ? assignment.dueDate.toISOString() : null,
+        points: assignment.points,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to create assignment" });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// POST /api/courses/:id/announcements  (teacher only)
+// ---------------------------------------------------------------------------
+router.post(
+  "/:id/announcements",
+  authMiddleware,
+  param("id")
+    .trim()
+    .notEmpty()
+    .withMessage("Course ID is required")
+    .isLength({ max: 50 }),
+  body("title")
+    .trim()
+    .notEmpty()
+    .withMessage("Title is required")
+    .isLength({ max: 200 })
+    .withMessage("Title must be 200 characters or fewer"),
+  body("content")
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ max: 10000 })
+    .withMessage("Content too long"),
+  validate,
+  async (req, res) => {
+    try {
+      const courseId = req.params.id;
+
+      const enrollment = await prisma.enrollment.findUnique({
+        where: { userId_courseId: { userId: req.userId, courseId } },
+      });
+      if (!enrollment || enrollment.role !== "teacher") {
+        return res
+          .status(403)
+          .json({ error: "Only course teachers can post announcements" });
+      }
+
+      const { title, content } = req.body;
+      const announcement = await prisma.announcement.create({
+        data: {
+          courseId,
+          title,
+          content: content || null,
+          authorId: req.userId,
+        },
+      });
+
+      res.status(201).json({
+        id: announcement.id,
+        title: announcement.title,
+        content: announcement.content,
+        postedAt: announcement.postedAt.toISOString(),
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to create announcement" });
+    }
+  },
+);
