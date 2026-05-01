@@ -3,6 +3,13 @@ import { query, param, body } from "express-validator";
 import { PrismaClient } from "@prisma/client";
 import { authMiddleware } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
+import {
+  uploadMiddleware,
+  handleUploadErrors,
+  UPLOAD_DIR,
+} from "../middleware/upload.js";
+import path from "path";
+import fs from "fs";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -142,82 +149,17 @@ router.post(
 );
 
 // ---------------------------------------------------------------------------
-// GET /api/courses/:id
-// ---------------------------------------------------------------------------
-router.get(
-  "/:id",
-  authMiddleware,
-  param("id")
-    .trim()
-    .notEmpty()
-    .withMessage("Course ID is required")
-    .isLength({ max: 50 })
-    .withMessage("Course ID is invalid"),
-  validate,
-  async (req, res) => {
-    try {
-      const enrollment = await prisma.enrollment.findFirst({
-        where: { userId: req.userId, courseId: req.params.id },
-        include: {
-          course: {
-            include: {
-              assignments: true,
-              modules: { orderBy: { order: "asc" } },
-              announcements: true,
-            },
-          },
-        },
-      });
-
-      if (!enrollment) {
-        return res.status(404).json({ error: "Course not found" });
-      }
-
-      const c = enrollment.course;
-      res.json({
-        id: c.id,
-        code: c.code,
-        name: c.name,
-        professor: c.professor,
-        description: c.description,
-        term: c.term,
-        color: c.color,
-        credits: 4,
-        assignments: c.assignments.map((a) => ({
-          id: a.id,
-          title: a.title,
-          description: a.description,
-          dueDate: a.dueDate ? a.dueDate.toISOString() : null,
-          points: a.points,
-        })),
-        modules: c.modules.map((m) => ({
-          id: m.id,
-          title: m.title,
-          items: 0,
-          completed: false,
-        })),
-        announcements: c.announcements.map((a) => ({
-          id: a.id,
-          title: a.title,
-          content: a.content,
-          postedAt: a.postedAt,
-        })),
-      });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to fetch course" });
-    }
-  },
-);
-
-export default router;
-
-// ---------------------------------------------------------------------------
 // POST /api/courses/:id/assignments  (teacher only)
+// Accepts multipart/form-data so files can be attached alongside fields.
 // ---------------------------------------------------------------------------
 router.post(
   "/:id/assignments",
   authMiddleware,
+  // multer runs first — it parses multipart bodies and populates req.body + req.files
+  (req, res, next) =>
+    uploadMiddleware(req, res, (err) =>
+      handleUploadErrors(err, req, res, next),
+    ),
   param("id")
     .trim()
     .notEmpty()
@@ -247,14 +189,16 @@ router.post(
     .toInt(),
   validate,
   async (req, res) => {
+    const uploadedFiles = req.files || [];
     try {
       const courseId = req.params.id;
 
-      // verify the requester is a teacher in this course
       const enrollment = await prisma.enrollment.findUnique({
         where: { userId_courseId: { userId: req.userId, courseId } },
       });
       if (!enrollment || enrollment.role !== "teacher") {
+        // clean up any uploaded files before rejecting
+        uploadedFiles.forEach((f) => fs.unlink(f.path, () => {}));
         return res
           .status(403)
           .json({ error: "Only course teachers can create assignments" });
@@ -267,8 +211,19 @@ router.post(
           title,
           description: description || null,
           dueDate: dueDate || null,
-          points: points ?? 100,
+          points: points != null ? Number(points) : 100,
+          files: uploadedFiles.length
+            ? {
+                create: uploadedFiles.map((f) => ({
+                  originalName: f.originalname,
+                  storedName: f.filename,
+                  mimeType: f.mimetype,
+                  sizeBytes: f.size,
+                })),
+              }
+            : undefined,
         },
+        include: { files: true },
       });
 
       res.status(201).json({
@@ -277,10 +232,61 @@ router.post(
         description: assignment.description,
         dueDate: assignment.dueDate ? assignment.dueDate.toISOString() : null,
         points: assignment.points,
+        files: assignment.files.map((f) => ({
+          id: f.id,
+          name: f.originalName,
+          size: f.sizeBytes,
+          url: `/api/files/${f.id}`,
+        })),
       });
     } catch (err) {
+      // clean up orphaned uploads on DB failure
+      uploadedFiles.forEach((f) => fs.unlink(f.path, () => {}));
       console.error(err);
       res.status(500).json({ error: "Failed to create assignment" });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/files/:id — serve an uploaded assignment file
+// ---------------------------------------------------------------------------
+router.get(
+  "/files/:fileId",
+  authMiddleware,
+  param("fileId").trim().notEmpty().isLength({ max: 50 }),
+  validate,
+  async (req, res) => {
+    try {
+      const file = await prisma.assignmentFile.findUnique({
+        where: { id: req.params.fileId },
+        include: {
+          assignment: {
+            include: { course: { include: { enrollments: true } } },
+          },
+        },
+      });
+      if (!file) return res.status(404).json({ error: "File not found" });
+
+      // only enrolled users can download
+      const enrolled = file.assignment.course.enrollments.some(
+        (e) => e.userId === req.userId,
+      );
+      if (!enrolled) return res.status(403).json({ error: "Access denied" });
+
+      const filePath = path.join(UPLOAD_DIR, file.storedName);
+      if (!fs.existsSync(filePath))
+        return res.status(404).json({ error: "File not found on disk" });
+
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${encodeURIComponent(file.originalName)}"`,
+      );
+      res.setHeader("Content-Type", file.mimeType);
+      fs.createReadStream(filePath).pipe(res);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to serve file" });
     }
   },
 );
@@ -344,3 +350,83 @@ router.post(
     }
   },
 );
+
+// ---------------------------------------------------------------------------
+// GET /api/courses/:id
+// ---------------------------------------------------------------------------
+router.get(
+  "/:id",
+  authMiddleware,
+  param("id")
+    .trim()
+    .notEmpty()
+    .withMessage("Course ID is required")
+    .isLength({ max: 50 })
+    .withMessage("Course ID is invalid"),
+  validate,
+  async (req, res) => {
+    try {
+      const enrollment = await prisma.enrollment.findFirst({
+        where: { userId: req.userId, courseId: req.params.id },
+        include: {
+          course: {
+            include: {
+              assignments: {
+                include: { files: true },
+                orderBy: { dueDate: "asc" },
+              },
+              modules: { orderBy: { order: "asc" } },
+              announcements: { orderBy: { postedAt: "desc" } },
+            },
+          },
+        },
+      });
+
+      if (!enrollment) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      const c = enrollment.course;
+      res.json({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        professor: c.professor,
+        description: c.description,
+        term: c.term,
+        color: c.color,
+        credits: 4,
+        assignments: c.assignments.map((a) => ({
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          dueDate: a.dueDate ? a.dueDate.toISOString() : null,
+          points: a.points,
+          files: a.files.map((f) => ({
+            id: f.id,
+            name: f.originalName,
+            size: f.sizeBytes,
+            url: `/api/files/${f.id}`,
+          })),
+        })),
+        modules: c.modules.map((m) => ({
+          id: m.id,
+          title: m.title,
+          items: 0,
+          completed: false,
+        })),
+        announcements: c.announcements.map((a) => ({
+          id: a.id,
+          title: a.title,
+          content: a.content,
+          postedAt: a.postedAt,
+        })),
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch course" });
+    }
+  },
+);
+
+export default router;

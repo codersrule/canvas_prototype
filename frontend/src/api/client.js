@@ -101,6 +101,38 @@ export const api = {
     });
   },
 
+  // Multipart version used when files are attached
+  async createAssignmentForm(courseId, formData) {
+    const token = getToken();
+    const headers = {
+      ...(token && { Authorization: `Bearer ${token}` }),
+      // Do NOT set Content-Type — browser sets it with the multipart boundary
+    };
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/api/courses/${courseId}/assignments`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+    } catch (e) {
+      const msg =
+        e?.message === "Failed to fetch"
+          ? networkErrorMessage()
+          : e?.message || "Network error";
+      throw new Error(msg);
+    }
+    if (res.status === 401) {
+      localStorage.removeItem("classroom_auth");
+      throw new Error("Session expired");
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Request failed: ${res.status}`);
+    }
+    return res.json().catch(() => ({}));
+  },
+
   async createAnnouncement(courseId, { title, content }) {
     return request(`/api/courses/${courseId}/announcements`, {
       method: "POST",

@@ -70,6 +70,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);
+app.use("/api/files", courseRoutes); // file download route is defined inside courseRoutes
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Classroom API" });
