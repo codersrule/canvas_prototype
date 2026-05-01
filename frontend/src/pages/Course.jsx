@@ -1315,6 +1315,8 @@ export function CoursePage() {
   const [apiCourse, setApiCourse] = useState(null);
   const [apiError, setApiError] = useState(null);
 
+  const activeTab = matchTab ? paramsTab.tab : "home";
+
   useEffect(() => {
     if (!USE_API || !courseId) return;
     setApiError(null);
@@ -1323,8 +1325,6 @@ export function CoursePage() {
       .then(setApiCourse)
       .catch((e) => setApiError(e.message));
   }, [USE_API, courseId, activeTab]);
-
-  const activeTab = matchTab ? paramsTab.tab : "home";
   const course = useMemo(() => {
     if (!courseId) return null;
     if (USE_API) {
