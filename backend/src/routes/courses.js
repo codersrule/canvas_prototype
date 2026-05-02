@@ -177,16 +177,24 @@ router.post(
     .trim()
     .isLength({ max: 5000 })
     .withMessage("Description too long"),
+  // dueDate arrives as an ISO string or datetime-local string ("YYYY-MM-DDTHH:mm") —
+  // validate it parses to a real date rather than enforcing strict ISO 8601 format.
   body("dueDate")
     .optional({ checkFalsy: true })
-    .isISO8601()
-    .withMessage("dueDate must be a valid ISO 8601 date")
-    .toDate(),
+    .custom((val) => {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) throw new Error("dueDate must be a valid date");
+      return true;
+    }),
+  // points arrives as a string from FormData — validate as numeric string, coerce in handler
   body("points")
-    .optional()
-    .isInt({ min: 0, max: 10000 })
-    .withMessage("Points must be between 0 and 10000")
-    .toInt(),
+    .optional({ checkFalsy: true })
+    .custom((val) => {
+      const n = Number(val);
+      if (!Number.isFinite(n) || n < 0 || n > 10000)
+        throw new Error("Points must be between 0 and 10000");
+      return true;
+    }),
   validate,
   async (req, res) => {
     const uploadedFiles = req.files || [];

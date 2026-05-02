@@ -57,8 +57,15 @@ async function request(path, options = {}) {
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Request failed: ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    // validate middleware returns { errors: [{field, message}] }; other routes return { error: 'string' }
+    if (body.errors && Array.isArray(body.errors)) {
+      throw new Error(
+        body.errors.map((e) => e.message).join(", ") ||
+          `Request failed: ${res.status}`,
+      );
+    }
+    throw new Error(body.error || `Request failed: ${res.status}`);
   }
 
   return res.json().catch(() => ({}));
@@ -127,8 +134,14 @@ export const api = {
       throw new Error("Session expired");
     }
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `Request failed: ${res.status}`);
+      const body = await res.json().catch(() => ({}));
+      if (body.errors && Array.isArray(body.errors)) {
+        throw new Error(
+          body.errors.map((e) => e.message).join(", ") ||
+            `Request failed: ${res.status}`,
+        );
+      }
+      throw new Error(body.error || `Request failed: ${res.status}`);
     }
     return res.json().catch(() => ({}));
   },
