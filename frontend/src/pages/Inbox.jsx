@@ -1,115 +1,120 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { api } from '../api/client.js'
+import React, { useEffect, useMemo, useState } from "react";
+import { api } from "../api/client.js";
 
 function formatParticipants(participants) {
-  if (participants.length === 1) return participants[0]
-  if (participants.length === 2) return participants.join(', ')
-  return `${participants[0]}, ${participants[1]} +${participants.length - 2}`
+  if (participants.length === 1) return participants[0];
+  if (participants.length === 2) return participants.join(", ");
+  return `${participants[0]}, ${participants[1]} +${participants.length - 2}`;
 }
 
 function formatDateShort(dateValue) {
-  const date = new Date(dateValue)
-  const now = new Date()
-  const diffTime = Math.abs(now - date)
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  const date = new Date(dateValue);
+  const now = new Date();
+  const diffTime = Math.abs(now - date);
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) {
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
   }
   if (diffDays < 7) {
-    return date.toLocaleDateString('en-US', { weekday: 'short' })
+    return date.toLocaleDateString("en-US", { weekday: "short" });
   }
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function formatMessageDate(dateValue) {
-  const date = new Date(dateValue)
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+  const date = new Date(dateValue);
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function getInitials(name) {
   return name
-    .split(' ')
+    .split(" ")
     .map((n) => n[0])
-    .join('')
+    .join("")
     .toUpperCase()
-    .slice(0, 2)
+    .slice(0, 2);
 }
 
 export function InboxPage() {
-  const [allConversations, setAllConversations] = useState([])
-  const [selectedId, setSelectedId] = useState(null)
-  const [courseFilter, setCourseFilter] = useState('all')
-  const [folderFilter, setFolderFilter] = useState('inbox')
-  const [search, setSearch] = useState('')
-  const [replyText, setReplyText] = useState('')
-  const [error, setError] = useState(null)
+  const [allConversations, setAllConversations] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [courseFilter, setCourseFilter] = useState("all");
+  const [folderFilter, setFolderFilter] = useState("inbox");
+  const [search, setSearch] = useState("");
+  const [replyText, setReplyText] = useState("");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     api
       .getInbox()
       .then((rows) => {
-        setAllConversations(rows)
-        setSelectedId((current) => current ?? rows[0]?.id ?? null)
+        setAllConversations(rows);
+        setSelectedId((current) => current ?? rows[0]?.id ?? null);
       })
-      .catch((e) => setError(e.message))
-  }, [])
+      .catch((e) => setError(e.message));
+  }, []);
 
   const courses = useMemo(() => {
-    const names = new Set(allConversations.map((c) => c.course).filter(Boolean))
-    return [...names].map((name) => ({ id: name, name }))
-  }, [allConversations])
+    const names = new Set(
+      allConversations.map((c) => c.course).filter(Boolean),
+    );
+    return [...names].map((name) => ({ id: name, name }));
+  }, [allConversations]);
 
   const conversations = useMemo(() => {
-    let list = allConversations
-    if (courseFilter !== 'all') {
-      list = list.filter((c) => c.course === courseFilter)
+    let list = allConversations;
+    if (courseFilter !== "all") {
+      list = list.filter((c) => c.course === courseFilter);
     }
-    if (folderFilter === 'starred') {
-      list = list.filter((c) => c.starred)
+    if (folderFilter === "starred") {
+      list = list.filter((c) => c.starred);
     }
     if (search.trim()) {
-      const s = search.toLowerCase()
+      const s = search.toLowerCase();
       list = list.filter(
         (c) =>
           c.subject.toLowerCase().includes(s) ||
           c.preview.toLowerCase().includes(s) ||
           c.participants.some((p) => p.toLowerCase().includes(s)),
-      )
+      );
     }
-    return list
-  }, [allConversations, courseFilter, folderFilter, search])
+    return list;
+  }, [allConversations, courseFilter, folderFilter, search]);
 
   const selectedConversation = selectedId
     ? allConversations.find((c) => c.id === selectedId)
-    : null
+    : null;
 
   const onSelectConversation = (id) => {
-    setSelectedId(id)
+    setSelectedId(id);
     setAllConversations((prev) =>
       prev.map((c) => (c.id === id ? { ...c, unread: false } : c)),
-    )
-    api.markConversationRead(id).catch(() => {})
-  }
+    );
+    api.markConversationRead(id).catch(() => {});
+  };
 
   const onToggleStar = (id) => {
     setAllConversations((prev) =>
       prev.map((c) => (c.id === id ? { ...c, starred: !c.starred } : c)),
-    )
-    api.toggleConversationStar(id).catch(() => {})
-  }
+    );
+    api.toggleConversationStar(id).catch(() => {});
+  };
 
   const onSendReply = async () => {
-    if (!selectedConversation || !replyText.trim()) return
-    const body = replyText.trim()
-    setReplyText('')
+    if (!selectedConversation || !replyText.trim()) return;
+    const body = replyText.trim();
+    setReplyText("");
     try {
-      const message = await api.addMessage(selectedConversation.id, body)
+      const message = await api.addMessage(selectedConversation.id, body);
       setAllConversations((prev) =>
         prev.map((c) =>
           c.id === selectedConversation.id
@@ -121,15 +126,15 @@ export function InboxPage() {
               }
             : c,
         ),
-      )
+      );
     } catch (e) {
-      setError(e.message)
+      setError(e.message);
     }
-  }
+  };
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
-      <div className="bg-white border-b border-gray-200 flex-shrink-0 p-3 md:p-4 space-y-3">
+      <div className="bg-white border-b border-gray-200 shrink-0 p-3 md:p-4 space-y-3">
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex flex-wrap gap-2 md:gap-3">
           <select
@@ -163,7 +168,10 @@ export function InboxPage() {
           </div>
         </div>
         <div className="flex items-center justify-between text-sm text-gray-600">
-          <span>{conversations.length} conversation{conversations.length !== 1 ? 's' : ''}</span>
+          <span>
+            {conversations.length} conversation
+            {conversations.length !== 1 ? "s" : ""}
+          </span>
         </div>
       </div>
 
@@ -189,15 +197,17 @@ export function InboxPage() {
               </div>
             ) : (
               conversations.map((conv) => {
-                const isSelected = selectedId === conv.id
+                const isSelected = selectedId === conv.id;
                 return (
                   <button
                     key={conv.id}
                     type="button"
                     onClick={() => onSelectConversation(conv.id)}
                     className={`w-full text-left border-b border-gray-100 p-3 conversation-item ${
-                      isSelected ? 'bg-gray-50 border-l-4 border-l-gray-600' : 'bg-white'
-                    } ${conv.unread ? 'font-semibold' : ''}`}
+                      isSelected
+                        ? "bg-gray-50 border-l-4 border-l-gray-600"
+                        : "bg-white"
+                    } ${conv.unread ? "font-semibold" : ""}`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-gray-600 text-white flex items-center justify-center font-semibold text-sm">
@@ -222,16 +232,16 @@ export function InboxPage() {
                           <button
                             type="button"
                             onClick={(e) => {
-                              e.stopPropagation()
-                              onToggleStar(conv.id)
+                              e.stopPropagation();
+                              onToggleStar(conv.id);
                             }}
                             className={`star-btn ${
-                              conv.starred ? 'text-yellow-400' : 'text-gray-400'
+                              conv.starred ? "text-yellow-400" : "text-gray-400"
                             }`}
                           >
                             <svg
                               className="w-4 h-4"
-                              fill={conv.starred ? 'currentColor' : 'none'}
+                              fill={conv.starred ? "currentColor" : "none"}
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
@@ -254,7 +264,7 @@ export function InboxPage() {
                       </div>
                     </div>
                   </button>
-                )
+                );
               })
             )}
           </div>
@@ -310,7 +320,7 @@ export function InboxPage() {
                           {formatMessageDate(m.date)}
                         </span>
                       </div>
-                      <div className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      <div className="text-sm text-gray-700 whitespace-pre-wrap wrap-break-word">
                         {m.body}
                       </div>
                     </div>
@@ -352,6 +362,5 @@ export function InboxPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

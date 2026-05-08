@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Link, useRoute } from 'wouter'
-import { useAuth } from '../contexts/AuthContext.jsx'
-import { api } from '../api/client.js'
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Link, useRoute } from "wouter";
+import { useAuth } from "../contexts/AuthContext.jsx";
+import { api } from "../api/client.js";
 
-const USE_API = true
+const USE_API = true;
 
 function AssignmentBreadcrumb({ course, assignment }) {
   return (
@@ -20,48 +20,48 @@ function AssignmentBreadcrumb({ course, assignment }) {
         <li className="font-medium text-gray-900">{assignment.title}</li>
       </ol>
     </nav>
-  )
+  );
 }
 
 function getGradeColorClass(grade, total) {
-  const pct = total > 0 ? (grade / total) * 100 : 0
-  if (pct >= 90) return 'text-green-600'
-  if (pct >= 80) return 'text-gray-700'
-  if (pct >= 70) return 'text-yellow-600'
-  return 'text-red-600'
+  const pct = total > 0 ? (grade / total) * 100 : 0;
+  if (pct >= 90) return "text-green-600";
+  if (pct >= 80) return "text-gray-700";
+  if (pct >= 70) return "text-yellow-600";
+  return "text-red-600";
 }
 
 function SubmissionModal({ course, assignment, onClose, onSubmitted }) {
-  const [text, setText] = useState('')
-  const [fileName, setFileName] = useState(null)
-  const [fileInputKey, setFileInputKey] = useState(0)
+  const [text, setText] = useState("");
+  const [fileName, setFileName] = useState(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   const handleFileChange = (e) => {
-    const file = e.target.files?.[0]
-    setFileName(file ? file.name : null)
-  }
+    const file = e.target.files?.[0];
+    setFileName(file ? file.name : null);
+  };
 
   const handleSubmit = async () => {
-    if (!text.trim() && !fileName) return
+    if (!text.trim() && !fileName) return;
     await api.submitAssignment(course.id, assignment.id, {
       text: text.trim() || null,
       fileName: fileName || null,
-    })
-    onSubmitted()
-    onClose()
-  }
+    });
+    onSubmitted();
+    onClose();
+  };
 
   const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) onClose()
-  }
+    if (e.target === e.currentTarget) onClose();
+  };
 
   useEffect(() => {
     const onEscape = (e) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onEscape)
-    return () => window.removeEventListener('keydown', onEscape)
-  }, [onClose])
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
+  }, [onClose]);
 
   return (
     <div
@@ -72,8 +72,11 @@ function SubmissionModal({ course, assignment, onClose, onSubmitted }) {
       aria-labelledby="submission-modal-title"
     >
       <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 id="submission-modal-title" className="text-xl font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+          <h2
+            id="submission-modal-title"
+            className="text-xl font-semibold text-gray-900"
+          >
             Submit Assignment
           </h2>
           <button
@@ -82,22 +85,37 @@ function SubmissionModal({ course, assignment, onClose, onSubmitted }) {
             className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
             aria-label="Close"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
         <div className="p-6 overflow-y-auto flex-1">
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900">{assignment.title}</h3>
+            <h3 className="text-lg font-medium text-gray-900">
+              {assignment.title}
+            </h3>
             <p className="text-sm text-gray-600">
               {course.code} • Due: {assignment.dueDate}
             </p>
           </div>
 
           <div className="mb-6">
-            <label htmlFor="submission-text" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="submission-text"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Text Submission
             </label>
             <textarea
@@ -108,11 +126,15 @@ function SubmissionModal({ course, assignment, onClose, onSubmitted }) {
               className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all"
               placeholder="Type your response here..."
             />
-            <p className="text-xs text-gray-500 mt-1">You can paste your work or type directly into this box.</p>
+            <p className="text-xs text-gray-500 mt-1">
+              You can paste your work or type directly into this box.
+            </p>
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Upload File (Optional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload File (Optional)
+            </label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
               <svg
                 className="w-12 h-12 text-gray-400 mx-auto mb-3"
@@ -136,14 +158,23 @@ function SubmissionModal({ course, assignment, onClose, onSubmitted }) {
                 onChange={handleFileChange}
               />
               <label htmlFor="submission-file" className="cursor-pointer">
-                <span className="text-gray-700 hover:text-gray-800 font-medium">Choose a file</span>
+                <span className="text-gray-700 hover:text-gray-800 font-medium">
+                  Choose a file
+                </span>
                 <span className="text-gray-600"> or drag and drop</span>
               </label>
-              <p className="text-xs text-gray-500 mt-2">PDF, Word, Text, Code, or ZIP files</p>
+              <p className="text-xs text-gray-500 mt-2">
+                PDF, Word, Text, Code, or ZIP files
+              </p>
             </div>
             {fileName && (
               <div className="mt-2 flex items-center gap-2 p-2 bg-gray-100 border border-gray-200 rounded-lg">
-                <svg className="w-5 h-5 text-gray-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-5 h-5 text-gray-700 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -155,14 +186,24 @@ function SubmissionModal({ course, assignment, onClose, onSubmitted }) {
                 <button
                   type="button"
                   onClick={() => {
-                    setFileName(null)
-                    setFileInputKey((k) => k + 1)
+                    setFileName(null);
+                    setFileInputKey((k) => k + 1);
                   }}
                   className="text-red-600 hover:text-red-700 p-1"
                   aria-label="Remove file"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -171,7 +212,7 @@ function SubmissionModal({ course, assignment, onClose, onSubmitted }) {
 
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
             <svg
-              className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"
+              className="w-5 h-5 text-amber-600 shrink-0 mt-0.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -184,15 +225,18 @@ function SubmissionModal({ course, assignment, onClose, onSubmitted }) {
               />
             </svg>
             <div>
-              <p className="text-sm font-medium text-amber-900">Before you submit</p>
+              <p className="text-sm font-medium text-amber-900">
+                Before you submit
+              </p>
               <p className="text-xs text-amber-800 mt-1">
-                Make sure you've reviewed your work. You cannot edit your submission after submitting.
+                Make sure you've reviewed your work. You cannot edit your
+                submission after submitting.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -206,15 +250,25 @@ function SubmissionModal({ course, assignment, onClose, onSubmitted }) {
             disabled={!text.trim() && !fileName}
             className="px-5 py-2.5 bg-gray-700 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
             Submit Assignment
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function AssignmentNotFound({ course }) {
@@ -252,97 +306,99 @@ function AssignmentNotFound({ course }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function mergeApiAssignmentWithStores(apiAssignment, courseId, studentId) {
-  if (!apiAssignment) return apiAssignment
-  return apiAssignment
+  if (!apiAssignment) return apiAssignment;
+  return apiAssignment;
 }
 
 export function AssignmentPage() {
-  const [, params] = useRoute('/course/:courseId/assignment/:assignmentId')
-  const courseId = params?.courseId
-  const assignmentId = params?.assignmentId
+  const [, params] = useRoute("/course/:courseId/assignment/:assignmentId");
+  const courseId = params?.courseId;
+  const assignmentId = params?.assignmentId;
 
-  const [modalOpen, setModalOpen] = useState(false)
-  const [toast, setToast] = useState(null)
-  const [refresh, setRefresh] = useState(0)
-  const [apiCourse, setApiCourse] = useState(null)
-  const [apiError, setApiError] = useState(null)
+  const [modalOpen, setModalOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [refresh, setRefresh] = useState(0);
+  const [apiCourse, setApiCourse] = useState(null);
+  const [apiError, setApiError] = useState(null);
 
-  const { user } = useAuth()
-  const studentId = user?.studentId
+  const { user } = useAuth();
+  const studentId = user?.studentId;
 
   useEffect(() => {
-    if (!USE_API || !courseId) return
-    setApiError(null)
+    if (!USE_API || !courseId) return;
+    setApiError(null);
     api
       .getCourse(courseId)
       .then(setApiCourse)
-      .catch((e) => setApiError(e.message))
-  }, [USE_API, courseId])
+      .catch((e) => setApiError(e.message));
+  }, [USE_API, courseId]);
 
   const { course, assignment, effective } = useMemo(() => {
-    if (!courseId) return { course: null, assignment: null, effective: null }
+    if (!courseId) return { course: null, assignment: null, effective: null };
     if (USE_API) {
       if (apiError || !apiCourse) {
-        const fallbackCourse = apiError ? null : undefined
-        return { course: fallbackCourse, assignment: null, effective: null }
+        const fallbackCourse = apiError ? null : undefined;
+        return { course: fallbackCourse, assignment: null, effective: null };
       }
       const merged = {
         ...apiCourse,
         assignments: (apiCourse.assignments || []).map((a) =>
-          mergeApiAssignmentWithStores(a, courseId, studentId)
+          mergeApiAssignmentWithStores(a, courseId, studentId),
         ),
-      }
-      const baseAssignments = merged.assignments || []
-      const allAssignments = baseAssignments
-      const a = allAssignments.find((x) => String(x.id) === String(assignmentId))
-      const eff = a || null
-      return { course: merged, assignment: a, effective: eff }
+      };
+      const baseAssignments = merged.assignments || [];
+      const allAssignments = baseAssignments;
+      const a = allAssignments.find(
+        (x) => String(x.id) === String(assignmentId),
+      );
+      const eff = a || null;
+      return { course: merged, assignment: a, effective: eff };
     }
-    return { course: null, assignment: null, effective: null }
-  }, [courseId, assignmentId, USE_API, apiCourse, apiError, studentId])
+    return { course: null, assignment: null, effective: null };
+  }, [courseId, assignmentId, USE_API, apiCourse, apiError, studentId]);
 
   const onSubmitted = useCallback(() => {
-    setToast('Assignment submitted successfully!')
-    setRefresh((r) => r + 1)
-    const t = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(t)
-  }, [])
+    setToast("Assignment submitted successfully!");
+    setRefresh((r) => r + 1);
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(t)
-  }, [toast])
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   if (USE_API && apiCourse === null && !apiError) {
     return (
       <div className="p-6">
         <div className="flex justify-center py-12 text-gray-500">Loading…</div>
       </div>
-    )
+    );
   }
 
   if (USE_API && apiError) {
-    return <AssignmentNotFound course={null} />
+    return <AssignmentNotFound course={null} />;
   }
 
-  if (!course || !assignment) return <AssignmentNotFound course={course} />
+  if (!course || !assignment) return <AssignmentNotFound course={course} />;
 
-  const isSubmitted = effective?.submitted
-  const submission = effective?.submission
-  const grade = effective?.grade
-  const points = effective?.points
+  const isSubmitted = effective?.submitted;
+  const submission = effective?.submission;
+  const grade = effective?.grade;
+  const points = effective?.points;
 
   return (
     <div className="p-6">
       <AssignmentBreadcrumb course={course} assignment={effective} />
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className={`bg-gradient-to-r ${course.color} p-6 text-white`}>
+        <div className={`bg-linear-to-r ${course.color} p-6 text-white`}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <div className="text-sm opacity-90 mb-1">{course.code}</div>
@@ -359,14 +415,18 @@ export function AssignmentPage() {
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-6 border-b border-gray-200">
             <div>
               <div className="text-sm text-gray-600 mb-1">Due Date</div>
-              <div className="text-lg font-semibold text-gray-900">{assignment.dueDate}</div>
+              <div className="text-lg font-semibold text-gray-900">
+                {assignment.dueDate}
+              </div>
             </div>
             <div className="text-right">
               {isSubmitted ? (
                 grade != null ? (
                   <div>
                     <div className="text-sm text-gray-600 mb-1">Your Grade</div>
-                    <div className={`text-3xl font-bold ${getGradeColorClass(grade, points)}`}>
+                    <div
+                      className={`text-3xl font-bold ${getGradeColorClass(grade, points)}`}
+                    >
                       {grade}/{points}
                     </div>
                     <div className="text-sm text-gray-600 mt-1">
@@ -387,16 +447,19 @@ export function AssignmentPage() {
           </div>
 
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Instructions</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              Instructions
+            </h2>
             <div className="prose prose-sm max-w-none text-gray-700">
-              {assignment.description || 'No description provided for this assignment.'}
+              {assignment.description ||
+                "No description provided for this assignment."}
             </div>
           </div>
 
           {isSubmitted ? (
             <div className="bg-green-50 border border-green-200 rounded-lg p-6 flex gap-4">
               <svg
-                className="w-6 h-6 text-green-600 flex-shrink-0"
+                className="w-6 h-6 text-green-600 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -409,21 +472,32 @@ export function AssignmentPage() {
                 />
               </svg>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold text-green-900 mb-2">Assignment Submitted</h3>
+                <h3 className="text-lg font-semibold text-green-900 mb-2">
+                  Assignment Submitted
+                </h3>
                 <p className="text-sm text-green-800 mb-3">
                   {submission?.submittedAt
                     ? `You submitted this assignment on ${new Date(submission.submittedAt).toLocaleString()}.`
-                    : 'You have submitted this assignment.'}
+                    : "You have submitted this assignment."}
                 </p>
                 {submission?.text && (
                   <div className="bg-white border border-green-200 rounded-lg p-4 mb-3">
-                    <div className="text-xs font-medium text-gray-600 mb-2">Your Submission:</div>
-                    <div className="text-sm text-gray-900 whitespace-pre-wrap">{submission.text}</div>
+                    <div className="text-xs font-medium text-gray-600 mb-2">
+                      Your Submission:
+                    </div>
+                    <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                      {submission.text}
+                    </div>
                   </div>
                 )}
                 {submission?.fileName && (
                   <div className="flex items-center text-sm text-green-800 gap-2">
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-4 h-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -431,14 +505,18 @@ export function AssignmentPage() {
                         d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
                       />
                     </svg>
-                    <span className="truncate">File: {submission.fileName}</span>
+                    <span className="truncate">
+                      File: {submission.fileName}
+                    </span>
                   </div>
                 )}
               </div>
             </div>
           ) : (
             <div className="bg-gray-100 border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Submit Your Work</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Submit Your Work
+              </h3>
               <p className="text-sm text-gray-700 mb-4">
                 Submit your assignment before the due date to receive credit.
               </p>
@@ -447,7 +525,12 @@ export function AssignmentPage() {
                 onClick={() => setModalOpen(true)}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -493,5 +576,5 @@ export function AssignmentPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

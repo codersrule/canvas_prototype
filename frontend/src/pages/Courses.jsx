@@ -10,10 +10,12 @@ function CourseCard({ course }) {
         aria-label={`Open ${course.name}`}
       >
         <div
-          className={`h-32 bg-gradient-to-r ${course.color} p-4 text-white flex flex-col justify-between`}
+          className={`h-32 bg-linear-to-r ${course.color} p-4 text-white flex flex-col justify-between`}
         >
           <div className="text-sm opacity-90">{course.code}</div>
-          <div className="text-lg font-semibold line-clamp-2">{course.name}</div>
+          <div className="text-lg font-semibold line-clamp-2">
+            {course.name}
+          </div>
         </div>
         <div className="p-4">
           <div className="flex justify-between text-sm text-gray-600">
@@ -47,13 +49,15 @@ function AddCourseCard({ course, onAdd, adding }) {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
       <div
-        className={`h-32 bg-gradient-to-r ${course.color} p-4 text-white flex flex-col justify-between`}
+        className={`h-32 bg-linear-to-r ${course.color} p-4 text-white flex flex-col justify-between`}
       >
         <div className="text-sm opacity-90">{course.code}</div>
         <div className="text-lg font-semibold line-clamp-2">{course.name}</div>
       </div>
       <div className="p-4 flex justify-between items-center">
-        <span className="text-sm text-gray-600 truncate">{course.professor}</span>
+        <span className="text-sm text-gray-600 truncate">
+          {course.professor}
+        </span>
         <button
           type="button"
           onClick={() => onAdd(course.id)}
@@ -83,7 +87,10 @@ export function CoursesPage() {
   }, []);
 
   const fetchAvailable = () => {
-    api.getAvailableCourses(addSearch).then(setAvailable).catch(() => setAvailable([]));
+    api
+      .getAvailableCourses(addSearch)
+      .then(setAvailable)
+      .catch(() => setAvailable([]));
   };
 
   useEffect(() => {
@@ -115,7 +122,7 @@ export function CoursesPage() {
       (c) =>
         (c.code && c.code.toLowerCase().includes(q)) ||
         (c.name && c.name.toLowerCase().includes(q)) ||
-        (c.professor && c.professor.toLowerCase().includes(q))
+        (c.professor && c.professor.toLowerCase().includes(q)),
     );
   }, [list, search]);
 
@@ -134,7 +141,9 @@ export function CoursesPage() {
     return (
       <div className="p-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">My Courses</h1>
-        <div className="bg-red-50 text-red-700 rounded-lg p-4 mb-6">{error}</div>
+        <div className="bg-red-50 text-red-700 rounded-lg p-4 mb-6">
+          {error}
+        </div>
         <Link href="/">
           <a className="text-gray-700 hover:underline">Back to Dashboard</a>
         </Link>
@@ -180,13 +189,17 @@ export function CoursesPage() {
 
       {filtered.length === 0 && (
         <p className="text-gray-500 mb-10">
-          {search ? "No courses match your search." : "You have no courses yet."}
+          {search
+            ? "No courses match your search."
+            : "You have no courses yet."}
         </p>
       )}
 
-      {(
+      {
         <section className="border-t border-gray-200 pt-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Add a Course</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Add a Course
+          </h2>
           <p className="text-sm text-gray-600 mb-4">
             Search for available courses and add them to your list.
           </p>
@@ -225,13 +238,17 @@ export function CoursesPage() {
             ))}
           </div>
           {available.length === 0 && addSearch && (
-            <p className="text-gray-500">No available courses match your search.</p>
+            <p className="text-gray-500">
+              No available courses match your search.
+            </p>
           )}
           {available.length === 0 && !addSearch && (
-            <p className="text-gray-500">All available courses are already in your list.</p>
+            <p className="text-gray-500">
+              All available courses are already in your list.
+            </p>
           )}
         </section>
-      )}
+      }
     </div>
   );
 }

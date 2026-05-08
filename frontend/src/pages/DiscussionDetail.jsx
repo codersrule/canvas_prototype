@@ -308,7 +308,7 @@ export function DiscussionDetailPage() {
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Add a comment..."
-              className="flex-1 border-b border-transparent py-2 px-0 text-sm focus:outline-none focus:border-gray-400 border-b-2"
+              className="flex-1 border-b-2 border-transparent py-2 px-0 text-sm focus:outline-none focus:border-gray-400"
             />
             <button
               type="submit"

@@ -36,13 +36,15 @@ export function TeacherGradesPage() {
   return (
     <div className="p-6">
       {apiError && (
-        <div className="bg-red-50 text-red-700 rounded-lg p-4 mb-6">{apiError}</div>
+        <div className="bg-red-50 text-red-700 rounded-lg p-4 mb-6">
+          {apiError}
+        </div>
       )}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard Grades</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Overview of grades across your courses • {totalPending} assignments pending
-          review
+          Overview of grades across your courses • {totalPending} assignments
+          pending review
         </p>
       </div>
 
@@ -55,12 +57,15 @@ export function TeacherGradesPage() {
           const totalStudents = analytics.totalStudents || 0;
 
           return (
-            <Link key={course.id} href={`/teacher/course/${course.id}/analytics`}>
+            <Link
+              key={course.id}
+              href={`/teacher/course/${course.id}/analytics`}
+            >
               <a className="block bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow border border-gray-200 hover:border-gray-300">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div
-                      className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold bg-gradient-to-r ${course.color || "from-gray-500 to-gray-600"}`}
+                      className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold bg-linear-to-r ${course.color || "from-gray-500 to-gray-600"}`}
                     >
                       {course.code?.split(" ")[0] || "?"}
                     </div>
