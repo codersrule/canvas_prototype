@@ -1,13 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { Link } from 'wouter'
-import { coursesData } from '../data/classroomData.js'
-import { courseDetails } from '../data/courseDetails.js'
-import { getEffectiveAssignmentForStudent } from '../data/submissionStore.js'
-import { getCreatedAssignments } from '../data/createdContentStore.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { api } from '../api/client.js'
 
-const USE_API = !!import.meta.env.VITE_API_URL
+const USE_API = true
 
 function calculateCourseGrade(assignments) {
   if (!assignments || assignments.length === 0) return null
@@ -71,7 +67,6 @@ export function GradesPage() {
   const [apiError, setApiError] = useState(null)
 
   useEffect(() => {
-    if (!USE_API) return
     api
       .getCourses()
       .then(setApiCourses)
@@ -79,7 +74,7 @@ export function GradesPage() {
   }, [])
 
   useEffect(() => {
-    if (!USE_API || !apiCourses?.length) return
+    if (!apiCourses?.length) return
     apiCourses.forEach((c) => {
       api
         .getCourse(c.id)
@@ -88,25 +83,19 @@ export function GradesPage() {
         })
         .catch(() => {})
     })
-  }, [USE_API, apiCourses])
+  }, [apiCourses])
 
   const courseSummaries = useMemo(() => {
-    const list = USE_API ? (apiCourses ?? coursesData) : coursesData
-    const courses = Array.isArray(list) ? list : coursesData
+    const courses = Array.isArray(apiCourses) ? apiCourses : []
     return courses.map((c) => {
-      const details = USE_API ? apiCourseDetails[c.id] : courseDetails[c.id]
-      const baseAssignments = details?.assignments || []
-      const created = getCreatedAssignments(c.id)
-      const allAssignments = [...baseAssignments, ...created]
-      const effectiveAssignments = allAssignments.map((a) =>
-        getEffectiveAssignmentForStudent(c.id, a.id, a, studentId),
-      )
+      const details = apiCourseDetails[c.id]
+      const effectiveAssignments = details?.assignments || []
       const current = effectiveAssignments.length
         ? calculateCourseGrade(effectiveAssignments)
         : null
       return { course: c, details, effectiveAssignments, currentGrade: current }
     })
-  }, [studentId, USE_API, apiCourses, apiCourseDetails])
+  }, [apiCourses, apiCourseDetails])
 
   const validGrades = courseSummaries
     .filter((c) => c.currentGrade != null)

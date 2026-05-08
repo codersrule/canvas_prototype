@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "wouter";
-import { coursesData } from "../data/classroomData.js";
 import { api } from "../api/client.js";
-
-const USE_API = !!import.meta.env.VITE_API_URL;
 
 function CourseCard({ course }) {
   return (
@@ -71,7 +68,7 @@ function AddCourseCard({ course, onAdd, adding }) {
 }
 
 export function CoursesPage() {
-  const [courses, setCourses] = useState(USE_API ? null : coursesData);
+  const [courses, setCourses] = useState(null);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [addSearch, setAddSearch] = useState("");
@@ -79,7 +76,6 @@ export function CoursesPage() {
   const [addingId, setAddingId] = useState(null);
 
   useEffect(() => {
-    if (!USE_API) return;
     api
       .getCourses()
       .then(setCourses)
@@ -87,18 +83,15 @@ export function CoursesPage() {
   }, []);
 
   const fetchAvailable = () => {
-    if (!USE_API) return;
     api.getAvailableCourses(addSearch).then(setAvailable).catch(() => setAvailable([]));
   };
 
   useEffect(() => {
-    if (!USE_API) return;
     const t = setTimeout(fetchAvailable, 300);
     return () => clearTimeout(t);
-  }, [USE_API, addSearch]);
+  }, [addSearch]);
 
   const handleAdd = async (courseId) => {
-    if (!USE_API) return;
     setAddingId(courseId);
     try {
       await api.enrollInCourse(courseId);
@@ -114,7 +107,7 @@ export function CoursesPage() {
     }
   };
 
-  const list = USE_API ? courses : coursesData;
+  const list = courses || [];
   const filtered = useMemo(() => {
     if (!search.trim()) return list || [];
     const q = search.toLowerCase().trim();
@@ -126,7 +119,7 @@ export function CoursesPage() {
     );
   }, [list, search]);
 
-  if (USE_API && courses === null && !error) {
+  if (courses === null && !error) {
     return (
       <div className="p-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">My Courses</h1>
@@ -137,7 +130,7 @@ export function CoursesPage() {
     );
   }
 
-  if (USE_API && error) {
+  if (error) {
     return (
       <div className="p-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">My Courses</h1>
@@ -191,7 +184,7 @@ export function CoursesPage() {
         </p>
       )}
 
-      {USE_API && (
+      {(
         <section className="border-t border-gray-200 pt-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Add a Course</h2>
           <p className="text-sm text-gray-600 mb-4">

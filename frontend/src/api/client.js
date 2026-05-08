@@ -152,4 +152,70 @@ export const api = {
       body: JSON.stringify({ title, content }),
     });
   },
+
+  async getDashboard() {
+    return request("/api/dashboard");
+  },
+
+  async getNotifications(role) {
+    const qs = role === "teacher" ? "?role=teacher" : "";
+    return request(`/api/notifications${qs}`);
+  },
+
+  async getGroups() {
+    return request("/api/groups");
+  },
+
+  async getInbox() {
+    return request("/api/inbox");
+  },
+
+  async markConversationRead(id) {
+    return request(`/api/inbox/${id}/read`, { method: "PATCH" });
+  },
+
+  async toggleConversationStar(id) {
+    return request(`/api/inbox/${id}/star`, { method: "PATCH" });
+  },
+
+  async addMessage(conversationId, body) {
+    return request(`/api/inbox/${conversationId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+  },
+
+  async getCoursePeople(courseId) {
+    return request(`/api/courses/${courseId}/people`);
+  },
+
+  async getCourseFiles(courseId) {
+    return request(`/api/courses/${courseId}/files`);
+  },
+
+  async getCourseDiscussions(courseId) {
+    return request(`/api/courses/${courseId}/discussions`);
+  },
+
+  async getDiscussion(courseId, discussionId) {
+    return request(`/api/courses/${courseId}/discussions/${discussionId}`);
+  },
+
+  async addDiscussionComment(courseId, discussionId, { text, parentId }) {
+    return request(`/api/courses/${courseId}/discussions/${discussionId}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ text, parentId }),
+    });
+  },
+
+  async submitAssignment(courseId, assignmentId, { text, fileName }) {
+    return request(`/api/courses/${courseId}/assignments/${assignmentId}/submission`, {
+      method: "POST",
+      body: JSON.stringify({ text, fileName }),
+    });
+  },
+
+  async getCourseAnalytics(courseId) {
+    return request(`/api/courses/${courseId}/analytics`);
+  },
 };

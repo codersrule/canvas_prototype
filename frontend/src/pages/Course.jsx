@@ -1,33 +1,54 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Link, useRoute } from "wouter";
-import {
-  courseDetails,
-  getCourseById,
-  calculateCurrentGrade,
-  getPendingAssignments,
-  getCompletedModulesCount,
-} from "../data/courseDetails.js";
-import {
-  getModuleItems,
-  getModuleItemIcon,
-  getModuleItemColor,
-} from "../data/moduleData.js";
-import { getEffectiveAssignmentForStudent } from "../data/submissionStore.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { api } from "../api/client.js";
-
-const USE_API = !!import.meta.env.VITE_API_URL;
 import { normalizeAnnouncement } from "../data/announcements.js";
-import {
-  getFilesByCourseId,
-  getFileIcon,
-  getFileTypeLabel,
-} from "../data/filesData.js";
-import {
-  getCreatedAnnouncements,
-  getCreatedAssignments,
-} from "../data/createdContentStore.js";
-import { getDiscussionsByCourseId } from "../data/discussionsData.js";
+
+const USE_API = true;
+
+function calculateCurrentGrade(course) {
+  const graded = (course.assignments || []).filter((a) => a.grade != null);
+  if (!graded.length) return null;
+  const total = graded.reduce(
+    (sum, a) => sum + (a.grade / (a.points || 100)) * 100,
+    0,
+  );
+  return Math.round(total / graded.length);
+}
+
+function getPendingAssignments(course) {
+  return (course.assignments || []).filter((a) => !a.submitted);
+}
+
+function getCompletedModulesCount(course) {
+  return (course.modules || []).filter((m) => m.completed).length;
+}
+
+function getEffectiveAssignmentForStudent(_courseId, _assignmentId, assignment) {
+  return assignment;
+}
+
+function getModuleItemIcon(type) {
+  if (type === "assignment") return "Assignment";
+  if (type === "quiz") return "Quiz";
+  if (type === "file") return "File";
+  return "Page";
+}
+
+function getModuleItemColor(type) {
+  if (type === "assignment") return "text-orange-600";
+  if (type === "quiz") return "text-purple-600";
+  if (type === "file") return "text-blue-600";
+  return "text-gray-600";
+}
+
+function getFileIcon() {
+  return "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z";
+}
+
+function getFileTypeLabel(type) {
+  return String(type || "file").split("/").pop().toUpperCase();
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -359,8 +380,7 @@ function HomeTab({ course }) {
             <div className="flex justify-between">
               <span className="text-gray-600">Total Assignments</span>
               <span className="font-medium text-gray-900">
-                {(course.assignments?.length || 0) +
-                  getCreatedAssignments(course.id).length}
+                {course.assignments?.length || 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -377,10 +397,7 @@ function HomeTab({ course }) {
 }
 
 function AnnouncementsTab({ course }) {
-  const list = [
-    ...(course.announcements || []),
-    ...getCreatedAnnouncements(course.id),
-  ];
+  const list = course.announcements || [];
   if (!list.length) {
     return (
       <div className="space-y-6">
@@ -466,7 +483,7 @@ function AnnouncementsTab({ course }) {
 }
 
 function DiscussionsTab({ course }) {
-  const discussions = getDiscussionsByCourseId(course.id);
+  const discussions = course.discussions || [];
 
   if (!discussions.length) {
     return (
@@ -541,10 +558,7 @@ function DiscussionsTab({ course }) {
 }
 
 function AssignmentsTab({ course, studentId }) {
-  const allAssignments = [
-    ...(course.assignments || []),
-    ...getCreatedAssignments(course.id),
-  ];
+  const allAssignments = course.assignments || [];
   const effectiveFor = (a) =>
     getEffectiveAssignmentForStudent(course.id, a.id, a, studentId);
   const pendingAssignments = allAssignments.filter(
@@ -741,7 +755,7 @@ function ModulesTab({ course }) {
 
       <div className="space-y-3">
         {course.modules.map((module) => {
-          const items = getModuleItems(course.id, module.id) || [];
+          const items = module.items || [];
           const hasItems = items.length > 0;
           const isOpen = openModules.has(module.id);
           return (
@@ -890,10 +904,7 @@ function SyllabusTab({ course, studentId }) {
     status: m.completed ? "Completed" : "Upcoming",
   }));
 
-  const allAssignments = [
-    ...(course.assignments || []),
-    ...getCreatedAssignments(course.id),
-  ];
+  const allAssignments = course.assignments || [];
   const upcoming = allAssignments
     .filter(
       (a) =>
@@ -1081,7 +1092,7 @@ function FileRow({ file }) {
 }
 
 function FilesTab({ course }) {
-  const files = getFilesByCourseId(course.id);
+  const files = course.files || [];
   const byFolder = files.reduce((acc, f) => {
     const key = f.folder || "(None)";
     if (!acc[key]) acc[key] = [];
@@ -1145,10 +1156,7 @@ function FilesTab({ course }) {
 }
 
 function GradesTab({ course, studentId }) {
-  const allAssignments = [
-    ...(course.assignments || []),
-    ...getCreatedAssignments(course.id),
-  ];
+  const allAssignments = course.assignments || [];
   const assignmentsWithEffective = allAssignments.map((a) =>
     getEffectiveAssignmentForStudent(course.id, a.id, a, studentId),
   );
@@ -1332,7 +1340,7 @@ export function CoursePage() {
       if (!apiCourse) return null;
       return mergeApiCourseWithStores(apiCourse, studentId);
     }
-    return getCourseById(parseInt(courseId, 10));
+    return null;
   }, [courseId, USE_API, apiCourse, apiError, studentId]);
 
   if (!courseId) {

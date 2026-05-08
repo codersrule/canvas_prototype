@@ -1,5 +1,4 @@
 import React, { useState, useRef } from "react";
-import { addAssignment } from "../data/createdContentStore.js";
 import { api } from "../api/client.js";
 
 // Always try the live API first (api client defaults to http://localhost:3001).
@@ -114,26 +113,7 @@ export function CreateAssignmentModal({ courseId, courses, onClose, onSaved }) {
         onClose();
       }, 600);
     } catch (err) {
-      // Graceful offline fallback — store in memory if API unreachable
-      if (
-        err.message?.includes("Cannot reach") ||
-        err.message?.includes("Failed to fetch")
-      ) {
-        addAssignment(effectiveCourseId, {
-          title: title.trim(),
-          description: description.trim() || undefined,
-          dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
-          points: points ? parseInt(points, 10) : 100,
-        });
-        setToast(true);
-        setTimeout(() => {
-          setToast(false);
-          onSaved?.();
-          onClose();
-        }, 600);
-      } else {
-        setError(err.message || "Failed to create assignment");
-      }
+      setError(err.message || "Failed to create assignment");
     } finally {
       setSaving(false);
     }

@@ -14,6 +14,37 @@ import fs from "fs";
 const router = Router();
 const prisma = new PrismaClient();
 
+function initials(name) {
+  return String(name || "")
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+async function requireEnrollment(userId, courseId, role = null) {
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { userId_courseId: { userId, courseId } },
+  });
+  if (!enrollment) return null;
+  if (role && enrollment.role !== role) return null;
+  return enrollment;
+}
+
+function mapComment(comment) {
+  return {
+    id: comment.id,
+    author: comment.user.name,
+    authorInitials: initials(comment.user.name),
+    text: comment.text,
+    postedAt: comment.postedAt,
+    likes: comment.likes,
+    replyCount: comment.replies?.length || 0,
+    replies: (comment.replies || []).map(mapComment),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // GET /api/courses?role=student|teacher
 // ---------------------------------------------------------------------------
@@ -360,6 +391,342 @@ router.post(
 );
 
 // ---------------------------------------------------------------------------
+// GET /api/courses/:id/people
+// ---------------------------------------------------------------------------
+router.get(
+  "/:id/people",
+  authMiddleware,
+  param("id").trim().notEmpty().isLength({ max: 50 }),
+  validate,
+  async (req, res) => {
+    try {
+      const enrollment = await requireEnrollment(req.userId, req.params.id);
+      if (!enrollment) return res.status(404).json({ error: "Course not found" });
+
+      const people = await prisma.enrollment.findMany({
+        where: { courseId: req.params.id },
+        include: { user: true },
+        orderBy: { role: "desc" },
+      });
+
+      res.json(
+        people.map((p) => ({
+          id: p.user.id,
+          name: p.user.name,
+          email: p.user.email,
+          role: p.role,
+          initials: initials(p.user.name),
+        })),
+      );
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch people" });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/courses/:id/files
+// ---------------------------------------------------------------------------
+router.get(
+  "/:id/files",
+  authMiddleware,
+  param("id").trim().notEmpty().isLength({ max: 50 }),
+  validate,
+  async (req, res) => {
+    try {
+      const enrollment = await requireEnrollment(req.userId, req.params.id);
+      if (!enrollment) return res.status(404).json({ error: "Course not found" });
+
+      const [courseFiles, assignments] = await Promise.all([
+        prisma.courseFile.findMany({
+          where: { courseId: req.params.id },
+          orderBy: { updatedAt: "desc" },
+        }),
+        prisma.assignment.findMany({
+          where: { courseId: req.params.id },
+          include: { files: true },
+          orderBy: { createdAt: "desc" },
+        }),
+      ]);
+
+      res.json([
+        ...courseFiles.map((f) => ({
+          id: f.id,
+          name: f.name,
+          type: f.type,
+          size: f.size,
+          folder: f.folder,
+          url: f.url,
+          updatedAt: f.updatedAt,
+        })),
+        ...assignments.flatMap((a) =>
+          a.files.map((f) => ({
+            id: f.id,
+            name: f.originalName,
+            type: f.mimeType,
+            size: `${Math.ceil(f.sizeBytes / 1024)} KB`,
+            folder: a.title,
+            url: `/api/files/${f.id}`,
+            updatedAt: f.uploadedAt,
+          })),
+        ),
+      ]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch files" });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/courses/:id/discussions
+// ---------------------------------------------------------------------------
+router.get(
+  "/:id/discussions",
+  authMiddleware,
+  param("id").trim().notEmpty().isLength({ max: 50 }),
+  validate,
+  async (req, res) => {
+    try {
+      const enrollment = await requireEnrollment(req.userId, req.params.id);
+      if (!enrollment) return res.status(404).json({ error: "Course not found" });
+
+      const discussions = await prisma.discussion.findMany({
+        where: { courseId: req.params.id },
+        include: { _count: { select: { comments: true } } },
+        orderBy: { postedAt: "desc" },
+      });
+
+      res.json(
+        discussions.map((d) => ({
+          id: d.id,
+          courseId: d.courseId,
+          title: d.title,
+          content: d.content,
+          author: d.author,
+          postedAt: d.postedAt,
+          replies: d._count.comments,
+        })),
+      );
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch discussions" });
+    }
+  },
+);
+
+router.get(
+  "/:id/discussions/:discussionId",
+  authMiddleware,
+  param("id").trim().notEmpty().isLength({ max: 50 }),
+  param("discussionId").trim().notEmpty().isLength({ max: 50 }),
+  validate,
+  async (req, res) => {
+    try {
+      const enrollment = await requireEnrollment(req.userId, req.params.id);
+      if (!enrollment) return res.status(404).json({ error: "Course not found" });
+
+      const discussion = await prisma.discussion.findFirst({
+        where: { id: req.params.discussionId, courseId: req.params.id },
+        include: {
+          comments: {
+            where: { parentId: null },
+            include: {
+              user: true,
+              replies: {
+                include: { user: true, replies: { include: { user: true } } },
+                orderBy: { postedAt: "asc" },
+              },
+            },
+            orderBy: { postedAt: "desc" },
+          },
+        },
+      });
+      if (!discussion) return res.status(404).json({ error: "Discussion not found" });
+
+      res.json({
+        id: discussion.id,
+        courseId: discussion.courseId,
+        title: discussion.title,
+        content: discussion.content,
+        author: discussion.author,
+        postedAt: discussion.postedAt,
+        comments: discussion.comments.map(mapComment),
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch discussion" });
+    }
+  },
+);
+
+router.post(
+  "/:id/discussions/:discussionId/comments",
+  authMiddleware,
+  param("id").trim().notEmpty().isLength({ max: 50 }),
+  param("discussionId").trim().notEmpty().isLength({ max: 50 }),
+  body("text").trim().notEmpty().isLength({ max: 5000 }),
+  body("parentId").optional({ checkFalsy: true }).isString().isLength({ max: 50 }),
+  validate,
+  async (req, res) => {
+    try {
+      const enrollment = await requireEnrollment(req.userId, req.params.id);
+      if (!enrollment) return res.status(404).json({ error: "Course not found" });
+
+      const discussion = await prisma.discussion.findFirst({
+        where: { id: req.params.discussionId, courseId: req.params.id },
+      });
+      if (!discussion) return res.status(404).json({ error: "Discussion not found" });
+
+      const comment = await prisma.discussionComment.create({
+        data: {
+          discussionId: req.params.discussionId,
+          userId: req.userId,
+          text: req.body.text,
+          parentId: req.body.parentId || null,
+        },
+        include: { user: true, replies: { include: { user: true } } },
+      });
+
+      res.status(201).json(mapComment(comment));
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to post comment" });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// POST /api/courses/:id/assignments/:assignmentId/submission
+// ---------------------------------------------------------------------------
+router.post(
+  "/:id/assignments/:assignmentId/submission",
+  authMiddleware,
+  param("id").trim().notEmpty().isLength({ max: 50 }),
+  param("assignmentId").trim().notEmpty().isLength({ max: 50 }),
+  body("text").optional({ checkFalsy: true }).isString().isLength({ max: 10000 }),
+  body("fileName").optional({ checkFalsy: true }).isString().isLength({ max: 255 }),
+  validate,
+  async (req, res) => {
+    try {
+      const enrollment = await requireEnrollment(req.userId, req.params.id, "student");
+      if (!enrollment) return res.status(403).json({ error: "Only enrolled students can submit" });
+
+      const assignment = await prisma.assignment.findFirst({
+        where: { id: req.params.assignmentId, courseId: req.params.id },
+      });
+      if (!assignment) return res.status(404).json({ error: "Assignment not found" });
+
+      const submission = await prisma.submission.upsert({
+        where: {
+          userId_assignmentId: {
+            userId: req.userId,
+            assignmentId: req.params.assignmentId,
+          },
+        },
+        update: {
+          text: req.body.text || null,
+          fileName: req.body.fileName || null,
+          submittedAt: new Date(),
+        },
+        create: {
+          userId: req.userId,
+          assignmentId: req.params.assignmentId,
+          text: req.body.text || null,
+          fileName: req.body.fileName || null,
+        },
+        include: { grade: true },
+      });
+
+      res.json({
+        id: submission.id,
+        text: submission.text,
+        fileName: submission.fileName,
+        submittedAt: submission.submittedAt,
+        grade: submission.grade?.grade ?? null,
+        feedback: submission.grade?.feedback ?? null,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to submit assignment" });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/courses/:id/analytics
+// ---------------------------------------------------------------------------
+router.get(
+  "/:id/analytics",
+  authMiddleware,
+  param("id").trim().notEmpty().isLength({ max: 50 }),
+  validate,
+  async (req, res) => {
+    try {
+      const enrollment = await requireEnrollment(req.userId, req.params.id, "teacher");
+      if (!enrollment) return res.status(403).json({ error: "Only course teachers can view analytics" });
+
+      const [students, assignments, graded] = await Promise.all([
+        prisma.enrollment.count({ where: { courseId: req.params.id, role: "student" } }),
+        prisma.assignment.findMany({
+          where: { courseId: req.params.id },
+          include: { submissions: true },
+        }),
+        prisma.grade.findMany({
+          where: { submission: { assignment: { courseId: req.params.id } } },
+        }),
+      ]);
+
+      const averageGrade =
+        graded.length > 0
+          ? graded.reduce((sum, g) => sum + g.grade, 0) / graded.length
+          : 0;
+      const totalPossibleSubmissions = assignments.length * students;
+      const submitted = assignments.reduce((sum, a) => sum + a.submissions.length, 0);
+      const distribution = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+      graded.forEach((g) => {
+        if (g.grade >= 90) distribution.A += 1;
+        else if (g.grade >= 80) distribution.B += 1;
+        else if (g.grade >= 70) distribution.C += 1;
+        else if (g.grade >= 60) distribution.D += 1;
+        else distribution.F += 1;
+      });
+
+      res.json({
+        totalStudents: students,
+        activeStudents: students,
+        averageGrade: Number(averageGrade.toFixed(1)),
+        assignmentCompletion:
+          totalPossibleSubmissions > 0
+            ? Math.round((submitted / totalPossibleSubmissions) * 100)
+            : 0,
+        attendanceRate: 0,
+        gradeDistribution: distribution,
+        upcomingDeadlines: assignments.map((a) => ({
+          assignment: a.title,
+          assignmentId: a.id,
+          dueDate: a.dueDate,
+          submitted: a.submissions.length,
+          total: students,
+        })),
+        performanceMetrics: {
+          submissionRate:
+            totalPossibleSubmissions > 0
+              ? Math.round((submitted / totalPossibleSubmissions) * 100)
+              : 0,
+          lateSubmissions: 0,
+          resubmissions: 0,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
 // GET /api/courses/:id
 // ---------------------------------------------------------------------------
 router.get(
@@ -380,11 +747,26 @@ router.get(
           course: {
             include: {
               assignments: {
-                include: { files: true },
+                include: {
+                  files: true,
+                  submissions: {
+                    where: { userId: req.userId },
+                    include: { grade: true },
+                  },
+                },
                 orderBy: { dueDate: "asc" },
               },
-              modules: { orderBy: { order: "asc" } },
+              modules: {
+                include: { items: { orderBy: { order: "asc" } } },
+                orderBy: { order: "asc" },
+              },
               announcements: { orderBy: { postedAt: "desc" } },
+              discussions: {
+                include: { _count: { select: { comments: true } } },
+                orderBy: { postedAt: "desc" },
+              },
+              files: { orderBy: { updatedAt: "desc" } },
+              enrollments: { include: { user: true } },
             },
           },
         },
@@ -410,6 +792,17 @@ router.get(
           description: a.description,
           dueDate: a.dueDate ? a.dueDate.toISOString() : null,
           points: a.points,
+          submitted: a.submissions.length > 0,
+          submission: a.submissions[0]
+            ? {
+                id: a.submissions[0].id,
+                text: a.submissions[0].text,
+                fileName: a.submissions[0].fileName,
+                submittedAt: a.submissions[0].submittedAt,
+              }
+            : null,
+          grade: a.submissions[0]?.grade?.grade ?? null,
+          feedback: a.submissions[0]?.grade?.feedback ?? null,
           files: a.files.map((f) => ({
             id: f.id,
             name: f.originalName,
@@ -420,7 +813,12 @@ router.get(
         modules: c.modules.map((m) => ({
           id: m.id,
           title: m.title,
-          items: 0,
+          items: m.items.map((item) => ({
+            id: item.id,
+            title: item.title,
+            type: item.type,
+            url: item.url,
+          })),
           completed: false,
         })),
         announcements: c.announcements.map((a) => ({
@@ -428,6 +826,30 @@ router.get(
           title: a.title,
           content: a.content,
           postedAt: a.postedAt,
+        })),
+        discussions: c.discussions.map((d) => ({
+          id: d.id,
+          title: d.title,
+          content: d.content,
+          author: d.author,
+          postedAt: d.postedAt,
+          replies: d._count.comments,
+        })),
+        files: c.files.map((f) => ({
+          id: f.id,
+          name: f.name,
+          type: f.type,
+          size: f.size,
+          folder: f.folder,
+          url: f.url,
+          updatedAt: f.updatedAt,
+        })),
+        people: c.enrollments.map((e) => ({
+          id: e.user.id,
+          name: e.user.name,
+          email: e.user.email,
+          role: e.role,
+          initials: initials(e.user.name),
         })),
       });
     } catch (err) {

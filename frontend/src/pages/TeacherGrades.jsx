@@ -1,34 +1,37 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Link } from "wouter";
-import { getCourseById } from "../data/courseDetails.js";
-import {
-  getCourseAnalytics,
-  getPendingGrading,
-  getTotalPendingCount,
-} from "../data/teacherData.js";
 import { api } from "../api/client.js";
-
-const USE_API = !!import.meta.env.VITE_API_URL;
-const TEACHING_COURSES = [1, 2, 3, 4, 5, 6];
 
 export function TeacherGradesPage() {
   const [apiCourses, setApiCourses] = useState(null);
+  const [analyticsByCourse, setAnalyticsByCourse] = useState({});
   const [apiError, setApiError] = useState(null);
 
   useEffect(() => {
-    if (!USE_API) return;
     api
       .getCourses("teacher")
-      .then(setApiCourses)
+      .then((courses) => {
+        setApiCourses(courses);
+        return Promise.all(
+          courses.map((course) =>
+            api
+              .getCourseAnalytics(course.id)
+              .then((analytics) => [course.id, analytics])
+              .catch(() => [course.id, null]),
+          ),
+        );
+      })
+      .then((entries) => {
+        if (entries) setAnalyticsByCourse(Object.fromEntries(entries));
+      })
       .catch((e) => setApiError(e.message));
   }, []);
 
   const courses = useMemo(() => {
-    if (USE_API && apiCourses) return apiCourses;
-    return TEACHING_COURSES.map((id) => getCourseById(id)).filter(Boolean);
-  }, [USE_API, apiCourses]);
+    return apiCourses || [];
+  }, [apiCourses]);
 
-  const totalPending = USE_API ? 0 : getTotalPendingCount();
+  const totalPending = 0;
 
   return (
     <div className="p-6">
@@ -45,8 +48,8 @@ export function TeacherGradesPage() {
 
       <div className="space-y-4">
         {courses.map((course) => {
-          const analytics = getCourseAnalytics(String(course.id));
-          const pending = getPendingGrading(String(course.id)).length;
+          const analytics = analyticsByCourse[course.id] || {};
+          const pending = 0;
           const avg = analytics.averageGrade ?? 0;
           const dist = analytics.gradeDistribution || {};
           const totalStudents = analytics.totalStudents || 0;

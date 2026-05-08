@@ -29,6 +29,17 @@ async function main() {
     },
   });
 
+  const student2 = await prisma.user.upsert({
+    where: { email: "alice@classroom.edu" },
+    update: {},
+    create: {
+      email: "alice@classroom.edu",
+      password: studentPassword,
+      name: "Alice Johnson",
+      role: "student",
+    },
+  });
+
   const course1 = await prisma.course.upsert({
     where: { id: "ics31" },
     update: {},
@@ -86,6 +97,18 @@ async function main() {
 
   await prisma.enrollment.upsert({
     where: {
+      userId_courseId: { userId: student2.id, courseId: course1.id },
+    },
+    update: {},
+    create: {
+      userId: student2.id,
+      courseId: course1.id,
+      role: "student",
+    },
+  });
+
+  await prisma.enrollment.upsert({
+    where: {
       userId_courseId: { userId: teacher.id, courseId: course2.id },
     },
     update: {},
@@ -124,17 +147,52 @@ async function main() {
   await prisma.module.createMany({
     data: [
       {
+        id: "ics31-m1",
         courseId: course1.id,
         title: "Week 1: Introduction to Python",
         order: 1,
       },
       {
+        id: "ics31-m2",
         courseId: course1.id,
         title: "Week 2: Variables and Data Types",
         order: 2,
       },
-      { courseId: course1.id, title: "Week 3: Control Structures", order: 3 },
+      {
+        id: "ics31-m3",
+        courseId: course1.id,
+        title: "Week 3: Control Structures",
+        order: 3,
+      },
     ],
+    skipDuplicates: true,
+  });
+
+  await prisma.moduleItem.createMany({
+    data: [
+      {
+        id: "ics31-m1-i1",
+        moduleId: "ics31-m1",
+        title: "Read the syllabus",
+        type: "page",
+        order: 1,
+      },
+      {
+        id: "ics31-m1-i2",
+        moduleId: "ics31-m1",
+        title: "Install Python",
+        type: "assignment",
+        order: 2,
+      },
+      {
+        id: "ics31-m2-i1",
+        moduleId: "ics31-m2",
+        title: "Variables lecture notes",
+        type: "page",
+        order: 1,
+      },
+    ],
+    skipDuplicates: true,
   });
 
   const existingAnnouncement = await prisma.announcement.findFirst({
@@ -147,6 +205,94 @@ async function main() {
         title: "Welcome to ICS 31",
         content:
           "Welcome to the course. Please review the syllabus and complete the first module.",
+      },
+    });
+  }
+
+  const existingDiscussion = await prisma.discussion.findFirst({
+    where: { courseId: course1.id, title: "Week 1 Questions" },
+  });
+  const discussion =
+    existingDiscussion ||
+    (await prisma.discussion.create({
+      data: {
+        courseId: course1.id,
+        title: "Week 1 Questions",
+        content: "Use this thread for questions about the first week of class.",
+        author: teacher.name,
+      },
+    }));
+
+  const existingComment = await prisma.discussionComment.findFirst({
+    where: { discussionId: discussion.id, userId: student2.id },
+  });
+  if (!existingComment) {
+    await prisma.discussionComment.create({
+      data: {
+        discussionId: discussion.id,
+        userId: student2.id,
+        text: "Can we use VS Code for the first assignment?",
+      },
+    });
+  }
+
+  const existingFile = await prisma.courseFile.findFirst({
+    where: { courseId: course1.id, name: "Syllabus.pdf" },
+  });
+  if (!existingFile) {
+    await prisma.courseFile.create({
+      data: {
+        courseId: course1.id,
+        name: "Syllabus.pdf",
+        type: "pdf",
+        size: "128 KB",
+        folder: "Course Documents",
+      },
+    });
+  }
+
+  const existingGroup = await prisma.group.findFirst({
+    where: { courseId: course1.id, name: "Project Group A" },
+  });
+  const group =
+    existingGroup ||
+    (await prisma.group.create({
+      data: {
+        courseId: course1.id,
+        name: "Project Group A",
+        description: "Database-backed project group for the course.",
+      },
+    }));
+  await prisma.groupMember.upsert({
+    where: { groupId_userId: { groupId: group.id, userId: student.id } },
+    update: {},
+    create: { groupId: group.id, userId: student.id },
+  });
+  await prisma.groupMember.upsert({
+    where: { groupId_userId: { groupId: group.id, userId: student2.id } },
+    update: {},
+    create: { groupId: group.id, userId: student2.id },
+  });
+
+  const existingConversation = await prisma.conversation.findFirst({
+    where: { subject: "Welcome to ICS 31" },
+  });
+  if (!existingConversation) {
+    await prisma.conversation.create({
+      data: {
+        subject: "Welcome to ICS 31",
+        courseId: course1.id,
+        participants: {
+          create: [{ userId: teacher.id }, { userId: student.id, unread: true }],
+        },
+        messages: {
+          create: [
+            {
+              senderId: teacher.id,
+              body: "Welcome to the course. Let me know if you have questions.",
+            },
+          ],
+        },
       },
     });
   }

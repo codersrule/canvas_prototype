@@ -1,12 +1,5 @@
-import React, { useMemo, useState } from 'react'
-import {
-  getInboxConversations,
-  getConversationById,
-  getInboxCourses,
-  markAsRead,
-  toggleConversationStar,
-  addMessage,
-} from '../data/inboxData.js'
+import React, { useEffect, useMemo, useState } from 'react'
+import { api } from '../api/client.js'
 
 function formatParticipants(participants) {
   if (participants.length === 1) return participants[0]
@@ -49,17 +42,31 @@ function getInitials(name) {
 }
 
 export function InboxPage() {
-  const allConversations = useMemo(() => getInboxConversations(), [])
-  const [selectedId, setSelectedId] = useState(allConversations[0]?.id ?? null)
+  const [allConversations, setAllConversations] = useState([])
+  const [selectedId, setSelectedId] = useState(null)
   const [courseFilter, setCourseFilter] = useState('all')
   const [folderFilter, setFolderFilter] = useState('inbox')
   const [search, setSearch] = useState('')
   const [replyText, setReplyText] = useState('')
+  const [error, setError] = useState(null)
 
-  const courses = useMemo(() => getInboxCourses(), [])
+  useEffect(() => {
+    api
+      .getInbox()
+      .then((rows) => {
+        setAllConversations(rows)
+        setSelectedId((current) => current ?? rows[0]?.id ?? null)
+      })
+      .catch((e) => setError(e.message))
+  }, [])
+
+  const courses = useMemo(() => {
+    const names = new Set(allConversations.map((c) => c.course).filter(Boolean))
+    return [...names].map((name) => ({ id: name, name }))
+  }, [allConversations])
 
   const conversations = useMemo(() => {
-    let list = getInboxConversations()
+    let list = allConversations
     if (courseFilter !== 'all') {
       list = list.filter((c) => c.course === courseFilter)
     }
@@ -76,32 +83,54 @@ export function InboxPage() {
       )
     }
     return list
-  }, [courseFilter, folderFilter, search])
+  }, [allConversations, courseFilter, folderFilter, search])
 
-  const selectedConversation = selectedId ? getConversationById(selectedId) : null
+  const selectedConversation = selectedId
+    ? allConversations.find((c) => c.id === selectedId)
+    : null
 
   const onSelectConversation = (id) => {
     setSelectedId(id)
-    markAsRead(id)
+    setAllConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, unread: false } : c)),
+    )
+    api.markConversationRead(id).catch(() => {})
   }
 
   const onToggleStar = (id) => {
-    toggleConversationStar(id)
+    setAllConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, starred: !c.starred } : c)),
+    )
+    api.toggleConversationStar(id).catch(() => {})
   }
 
-  const onSendReply = () => {
+  const onSendReply = async () => {
     if (!selectedConversation || !replyText.trim()) return
-    addMessage(selectedConversation.id, {
-      sender: 'You',
-      body: replyText.trim(),
-      date: new Date().toISOString(),
-    })
+    const body = replyText.trim()
     setReplyText('')
+    try {
+      const message = await api.addMessage(selectedConversation.id, body)
+      setAllConversations((prev) =>
+        prev.map((c) =>
+          c.id === selectedConversation.id
+            ? {
+                ...c,
+                preview: message.body,
+                date: message.date,
+                messages: [...c.messages, message],
+              }
+            : c,
+        ),
+      )
+    } catch (e) {
+      setError(e.message)
+    }
   }
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <div className="bg-white border-b border-gray-200 flex-shrink-0 p-3 md:p-4 space-y-3">
+        {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex flex-wrap gap-2 md:gap-3">
           <select
             value={courseFilter}

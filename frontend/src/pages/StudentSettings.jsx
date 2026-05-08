@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { userData } from '../data/classroomData.js'
+import { useAuth } from '../contexts/AuthContext.jsx'
 
 const STORAGE_KEY = 'classroom_student_settings'
 
@@ -64,8 +64,18 @@ function Toggle({ id, label, description, checked, onChange }) {
 }
 
 export function StudentSettingsPage() {
+  const { user } = useAuth()
   const [settings, setSettings] = useState(defaultSettings)
   const [status, setStatus] = useState(null)
+  const initials =
+    user?.initials ||
+    user?.name
+      ?.split(/\s+/)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() ||
+    '?'
 
   useEffect(() => {
     setSettings(loadSettings())
@@ -97,11 +107,11 @@ export function StudentSettingsPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile</h2>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center font-semibold text-lg">
-              {userData.initials}
+              {initials}
             </div>
             <div>
-              <p className="font-medium text-gray-900">{userData.name}</p>
-              <p className="text-sm text-gray-500">Student • {userData.semester}</p>
+              <p className="font-medium text-gray-900">{user?.name || 'Student'}</p>
+              <p className="text-sm text-gray-500">Student</p>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -109,7 +119,7 @@ export function StudentSettingsPage() {
               <label className="block text-xs font-medium text-gray-500 mb-1">Display name</label>
               <input
                 type="text"
-                value={userData.name}
+                value={user?.name || ''}
                 disabled
                 className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
               />
@@ -118,7 +128,7 @@ export function StudentSettingsPage() {
               <label className="block text-xs font-medium text-gray-500 mb-1">Account email</label>
               <input
                 type="email"
-                value="student@example.edu"
+                value={user?.email || ''}
                 disabled
                 className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
               />

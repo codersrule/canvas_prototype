@@ -27,16 +27,14 @@ import { TeacherGradesPage } from "./pages/TeacherGrades.jsx";
 import { AssignmentPage } from "./pages/Assignment.jsx";
 import { AnnouncementDetailPage } from "./pages/AnnouncementDetail.jsx";
 import { DiscussionDetailPage } from "./pages/DiscussionDetail.jsx";
-import { MOCK_NOTIFICATIONS } from "./data/notificationsData.js";
 import { useAuth } from "./contexts/AuthContext.jsx";
 import { LoginPage } from "./pages/Login.jsx";
+import { api } from "./api/client.js";
 
 function Navbar({ onToggleSidebar, mode = "student" }) {
   const { user } = useAuth();
   const isTeacher = mode === "teacher";
-  const [notifications, setNotifications] = useState(() =>
-    MOCK_NOTIFICATIONS.map((n) => ({ ...n })),
-  );
+  const [notifications, setNotifications] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -55,6 +53,17 @@ function Navbar({ onToggleSidebar, mode = "student" }) {
         document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [dropdownOpen]);
+
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+    api
+      .getNotifications(isTeacher ? "teacher" : "student")
+      .then(setNotifications)
+      .catch(() => setNotifications([]));
+  }, [user, isTeacher]);
 
   const markAsRead = (id) => {
     setNotifications((prev) =>

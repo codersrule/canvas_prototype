@@ -1,8 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react'
-import { courseDetails } from '../data/courseDetails.js'
 import { api } from '../api/client.js'
 
-const USE_API = !!import.meta.env.VITE_API_URL
+const USE_API = true
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -99,7 +98,7 @@ export function CalendarPage() {
 
   const courseSources = useMemo(() => {
     if (USE_API && apiCourseDetails.length > 0) return apiCourseDetails
-    return Object.values(courseDetails)
+    return []
   }, [USE_API, apiCourseDetails])
 
   const events = useMemo(() => buildEvents(courseSources), [courseSources])

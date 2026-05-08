@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useRoute } from 'wouter'
-import { getCourseById } from '../data/courseDetails.js'
 import { normalizeAnnouncement, getContentSegments } from '../data/announcements.js'
-import { getCreatedAnnouncements } from '../data/createdContentStore.js'
 import { api } from '../api/client.js'
 
-const USE_API = !!import.meta.env.VITE_API_URL
+const USE_API = true
 
 function AnnouncementNotFound({ course }) {
   return (
@@ -129,17 +127,10 @@ export function AnnouncementDetailPage() {
     if (USE_API) {
       if (apiError || !apiCourse) return { course: apiError ? null : undefined, announcement: null }
       const baseAnnouncements = apiCourse.announcements || []
-      const created = getCreatedAnnouncements(apiCourse.id)
-      const all = [...baseAnnouncements, ...created]
-      const a = all.find((x) => String(x.id) === String(announcementId))
+      const a = baseAnnouncements.find((x) => String(x.id) === String(announcementId))
       return { course: apiCourse, announcement: a }
     }
-    const c = getCourseById(parseInt(courseId, 10))
-    const base = c?.announcements || []
-    const created = getCreatedAnnouncements(c?.id || 0)
-    const all = [...base, ...created]
-    const a = all.find((x) => String(x.id) === String(announcementId))
-    return { course: c, announcement: a }
+    return { course: null, announcement: null }
   }, [courseId, announcementId, USE_API, apiCourse, apiError])
 
   useEffect(() => {

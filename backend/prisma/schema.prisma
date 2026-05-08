@@ -18,6 +18,10 @@ model User {
 
   enrollments Enrollment[]
   submissions  Submission[]
+  groupMemberships GroupMember[]
+  conversationParticipants ConversationParticipant[]
+  messages Message[]
+  discussionComments DiscussionComment[]
 }
 
 model Course {
@@ -35,6 +39,9 @@ model Course {
   assignments   Assignment[]
   modules       Module[]
   announcements Announcement[]
+  files         CourseFile[]
+  discussions   Discussion[]
+  groups        Group[]
 }
 
 model Enrollment {
@@ -83,6 +90,18 @@ model Module {
   order    Int    @default(0)
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  items  ModuleItem[]
+}
+
+model ModuleItem {
+  id       String @id @default(cuid())
+  moduleId String
+  title    String
+  type     String @default("page")
+  url      String?
+  order    Int    @default(0)
+
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 }
 
 model Announcement {
@@ -95,6 +114,104 @@ model Announcement {
   createdAt DateTime @default(now())
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model CourseFile {
+  id          String   @id @default(cuid())
+  courseId    String
+  name        String
+  type        String
+  size        String?
+  folder      String?
+  url         String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Discussion {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  content   String?
+  author    String
+  postedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  comments DiscussionComment[]
+}
+
+model DiscussionComment {
+  id           String   @id @default(cuid())
+  discussionId String
+  userId       String
+  parentId     String?
+  text         String
+  likes        Int      @default(0)
+  postedAt     DateTime @default(now())
+
+  discussion Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent     DiscussionComment? @relation("DiscussionReplies", fields: [parentId], references: [id])
+  replies    DiscussionComment[] @relation("DiscussionReplies")
+}
+
+model Group {
+  id          String @id @default(cuid())
+  courseId    String
+  name        String
+  description String?
+
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  members GroupMember[]
+}
+
+model GroupMember {
+  id      String @id @default(cuid())
+  groupId String
+  userId  String
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  subject   String
+  courseId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String  @id @default(cuid())
+  conversationId String
+  userId         String
+  unread         Boolean @default(false)
+  starred        Boolean @default(false)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }
 
 model Submission {

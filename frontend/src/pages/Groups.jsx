@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'wouter'
-import { MOCK_GROUPS } from '../data/groupsData.js'
 import { api } from '../api/client.js'
-
-const USE_API = !!import.meta.env.VITE_API_URL
 
 function GroupCard({ group, courseHref }) {
   return (
@@ -32,31 +29,20 @@ function GroupCard({ group, courseHref }) {
 }
 
 export function GroupsPage() {
-  const [apiCourses, setApiCourses] = useState(null)
+  const [groups, setGroups] = useState([])
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (!USE_API) return
-    api.getCourses().then(setApiCourses).catch(() => setApiCourses([]))
+    api.getGroups().then(setGroups).catch((e) => setError(e.message))
   }, [])
-
-  const courseIdByCode = useMemo(() => {
-    const map = {}
-    const list = USE_API && apiCourses ? apiCourses : []
-    list.forEach((c) => {
-      if (c.code) map[c.code] = c.id
-    })
-    return map
-  }, [USE_API, apiCourses])
 
   const groupsWithHrefs = useMemo(
     () =>
-      MOCK_GROUPS.map((group) => {
-        const href = USE_API
-          ? (courseIdByCode[group.course] ? `/course/${courseIdByCode[group.course]}` : null)
-          : `/course/${group.courseId}`
-        return { ...group, courseHref: href }
-      }),
-    [USE_API, courseIdByCode]
+      groups.map((group) => ({
+        ...group,
+        courseHref: group.courseId ? `/course/${group.courseId}` : null,
+      })),
+    [groups]
   )
 
   return (
@@ -65,8 +51,9 @@ export function GroupsPage() {
       <p className="text-gray-600 mb-6">
         Study groups and collaborative spaces for your courses.
       </p>
+      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
-      {MOCK_GROUPS.length > 0 ? (
+      {groupsWithHrefs.length > 0 ? (
         <div className="space-y-4">
           {groupsWithHrefs.map((group) => (
             <GroupCard key={group.id} group={group} courseHref={group.courseHref} />

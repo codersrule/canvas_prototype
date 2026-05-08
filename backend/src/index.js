@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import { loginLimiter, apiLimiter } from "./middleware/rateLimiter.js";
 import authRoutes from "./routes/auth.js";
 import courseRoutes from "./routes/courses.js";
+import appDataRoutes from "./routes/appData.js";
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/files", courseRoutes); // file download route is defined inside courseRoutes
+app.use("/api", appDataRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Classroom API" });

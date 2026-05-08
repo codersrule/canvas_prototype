@@ -1,28 +1,19 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Link } from "wouter";
-import { getCourseById } from "../data/courseDetails.js";
-import {
-  getCourseAnalytics,
-  getPendingGrading,
-  getTotalPendingCount,
-  getUpcomingDeadlinesForDashboard,
-} from "../data/teacherData.js";
 import { CreateAnnouncementModal } from "../components/CreateAnnouncementModal.jsx";
 import { CreateAssignmentModal } from "../components/CreateAssignmentModal.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { api } from "../api/client.js";
 
-const USE_API = !!import.meta.env.VITE_API_URL;
-const TEACHING_COURSES = [1, 2, 3, 4, 5, 6];
 const FAVORITES_KEY = "teacher_dashboard_favorites";
 
 function loadFavorites() {
   try {
     const raw = localStorage.getItem(FAVORITES_KEY);
-    if (!raw) return new Set(TEACHING_COURSES.map(String));
+    if (!raw) return new Set();
     return new Set(JSON.parse(raw));
   } catch {
-    return new Set(TEACHING_COURSES.map(String));
+    return new Set();
   }
 }
 
@@ -43,7 +34,6 @@ function buildActivityMessage(activity) {
 }
 
 function getCourseActivityCounts(course) {
-  const analytics = getCourseAnalytics(String(course.id));
   const assignments = Array.isArray(course.assignments)
     ? course.assignments.length
     : Number(course.assignments || 0);
@@ -61,22 +51,37 @@ export function TeacherDashboardPage() {
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
   const [apiCourses, setApiCourses] = useState(null);
+  const [analyticsByCourse, setAnalyticsByCourse] = useState({});
   const [apiError, setApiError] = useState(null);
   const [dashboardView, setDashboardView] = useState("card"); // card | list | activity
   const [favorites, setFavorites] = useState(loadFavorites);
 
   useEffect(() => {
-    if (!USE_API) return;
     api
       .getCourses("teacher")
-      .then(setApiCourses)
+      .then((courses) => {
+        setApiCourses(courses);
+        setFavorites((prev) =>
+          prev.size ? prev : new Set(courses.map((course) => String(course.id))),
+        );
+        return Promise.all(
+          courses.map((course) =>
+            api
+              .getCourseAnalytics(course.id)
+              .then((analytics) => [course.id, analytics])
+              .catch(() => [course.id, null]),
+          ),
+        );
+      })
+      .then((entries) => {
+        if (entries) setAnalyticsByCourse(Object.fromEntries(entries));
+      })
       .catch((e) => setApiError(e.message));
   }, []);
 
   const courses = useMemo(() => {
-    if (USE_API && apiCourses) return apiCourses;
-    return TEACHING_COURSES.map((id) => getCourseById(id)).filter(Boolean);
-  }, [USE_API, apiCourses]);
+    return apiCourses || [];
+  }, [apiCourses]);
 
   const favoritedCourses = useMemo(() => {
     return courses.filter((c) => favorites.has(String(c.id)));
@@ -84,10 +89,10 @@ export function TeacherDashboardPage() {
 
   const displayCourses = dashboardView === "card" ? favoritedCourses : courses;
 
-  const totalPending = USE_API ? 0 : getTotalPendingCount();
+  const totalPending = 0;
 
   const totalStudents = courses.reduce((sum, c) => {
-    const analytics = getCourseAnalytics(String(c.id));
+    const analytics = analyticsByCourse[c.id] || {};
     return sum + (analytics?.totalStudents || 0);
   }, 0);
 
@@ -95,7 +100,7 @@ export function TeacherDashboardPage() {
     courses.length > 0
       ? (
           courses.reduce((sum, c) => {
-            const analytics = getCourseAnalytics(String(c.id));
+            const analytics = analyticsByCourse[c.id] || {};
             return sum + (analytics?.attendanceRate || 0);
           }, 0) / courses.length
         ).toFixed(0)
@@ -105,25 +110,28 @@ export function TeacherDashboardPage() {
     () =>
       courses
         .flatMap((course) => {
-          const analytics = getCourseAnalytics(String(course.id));
+          const analytics = analyticsByCourse[course.id] || {};
           return (analytics?.recentActivity || []).map((a) => ({
             ...a,
             course,
           }));
         })
         .slice(0, 20),
-    [courses],
+    [courses, analyticsByCourse],
   );
 
-  const pendingItems = courses
-    .flatMap((course) =>
-      getPendingGrading(String(course.id)).map((p) => ({ ...p, course })),
-    )
-    .slice(0, 5);
+  const pendingItems = [];
 
   const upcomingDeadlines = useMemo(
-    () => getUpcomingDeadlinesForDashboard(courses),
-    [courses],
+    () =>
+      courses.flatMap((course) =>
+        (analyticsByCourse[course.id]?.upcomingDeadlines || []).map((d) => ({
+          ...d,
+          course,
+          courseId: course.id,
+        })),
+      ),
+    [courses, analyticsByCourse],
   );
 
   const toggleFavorite = (courseId) => {
@@ -137,7 +145,7 @@ export function TeacherDashboardPage() {
     });
   };
 
-  const isLoading = USE_API && apiCourses === null && !apiError;
+  const isLoading = apiCourses === null && !apiError;
 
   if (isLoading) {
     return (
@@ -241,8 +249,8 @@ export function TeacherDashboardPage() {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {displayCourses.map((course) => {
-                  const analytics = getCourseAnalytics(String(course.id));
-                  const pending = getPendingGrading(String(course.id)).length;
+                  const analytics = analyticsByCourse[course.id] || {};
+                  const pending = 0;
                   const counts = getCourseActivityCounts(course);
                   const isFav = favorites.has(String(course.id));
                   return (
@@ -352,8 +360,8 @@ export function TeacherDashboardPage() {
               </h2>
               <div className="space-y-2">
                 {displayCourses.map((course) => {
-                  const analytics = getCourseAnalytics(String(course.id));
-                  const pending = getPendingGrading(String(course.id)).length;
+                  const analytics = analyticsByCourse[course.id] || {};
+                  const pending = 0;
                   return (
                     <Link key={course.id} href={`/teacher/course/${course.id}`}>
                       <a className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200">

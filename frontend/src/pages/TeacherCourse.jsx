@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Link, useRoute } from "wouter";
 import { api } from "../api/client.js";
 
-const USE_API = !!import.meta.env.VITE_API_URL;
+const USE_API = true;
 import {
   BarChart,
   Bar,
@@ -16,19 +16,20 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { getCourseById } from "../data/courseDetails.js";
-import {
-  getCourseAnalytics,
-  getStudentsByCourse,
-  getPendingGrading,
-  calculateClassStats,
-} from "../data/teacherData.js";
-import { getFilesByCourseId, getFileTypeLabel } from "../data/filesData.js";
-import { getCreatedAssignments } from "../data/createdContentStore.js";
-import { setGrade } from "../data/gradeStore.js";
-import { getFilePreviewContent, isPdf } from "../data/submissionPreviewData.js";
 import { CreateAnnouncementModal } from "../components/CreateAnnouncementModal.jsx";
 import { CreateAssignmentModal } from "../components/CreateAssignmentModal.jsx";
+
+function getFileTypeLabel(type) {
+  return String(type || "file").split("/").pop().toUpperCase();
+}
+
+function getFilePreviewContent() {
+  return null;
+}
+
+function isPdf(filename) {
+  return String(filename || "").toLowerCase().endsWith(".pdf");
+}
 
 const TEACHER_TABS = [
   "overview",
@@ -205,9 +206,9 @@ function OverviewTab({
   );
 }
 
-function StudentsTab({ courseId }) {
+function StudentsTab({ course }) {
   const [search, setSearch] = useState("");
-  const allStudents = getStudentsByCourse(String(courseId));
+  const allStudents = (course.people || []).filter((person) => person.role === "student");
   const students = useMemo(() => {
     if (!search.trim()) return allStudents;
     const q = search.toLowerCase().trim();
@@ -217,7 +218,12 @@ function StudentsTab({ courseId }) {
         (s.email && s.email.toLowerCase().includes(q)),
     );
   }, [allStudents, search]);
-  const stats = calculateClassStats(String(courseId));
+  const stats = {
+    averageGrade: 0,
+    highestGrade: 0,
+    lowestGrade: 0,
+    passingRate: 0,
+  };
 
   const handleExport = () => {
     const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -244,7 +250,7 @@ function StudentsTab({ courseId }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `students-${courseId}.csv`;
+    a.download = `students-${course.id}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -503,10 +509,7 @@ function GradingTab({ pending, onGradeClick }) {
 }
 
 function GradingModal({ item, course, onClose, onSave }) {
-  const allAssignments = [
-    ...(course?.assignments || []),
-    ...getCreatedAssignments(course?.id || 0),
-  ];
+  const allAssignments = course?.assignments || [];
   const assignment = allAssignments.find((a) => a.id === item.assignmentId);
   const maxPoints = assignment?.points ?? 100;
 
@@ -1051,7 +1054,7 @@ function AnalyticsTab({ course, analytics }) {
 }
 
 function ContentTab({ course }) {
-  const files = getFilesByCourseId(course.id);
+  const files = course.files || [];
 
   return (
     <div className="space-y-6">
@@ -1151,6 +1154,7 @@ export function TeacherCoursePage() {
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
   const [apiCourse, setApiCourse] = useState(null);
+  const [apiAnalytics, setApiAnalytics] = useState(null);
   const [apiError, setApiError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -1171,6 +1175,10 @@ export function TeacherCoursePage() {
       .getCourse(courseIdStr)
       .then(setApiCourse)
       .catch((e) => setApiError(e.message));
+    api
+      .getCourseAnalytics(courseIdStr)
+      .then(setApiAnalytics)
+      .catch(() => setApiAnalytics(null));
   }, [USE_API, courseIdStr, refreshKey]);
 
   const course = useMemo(() => {
@@ -1179,18 +1187,17 @@ export function TeacherCoursePage() {
       if (apiError || !apiCourse) return null;
       return apiCourse;
     }
-    return getCourseById(courseId);
+    return null;
   }, [courseId, USE_API, apiCourse, apiError]);
 
   const activeTab = matchTab ? paramsTab.tab : "overview";
-  const analytics = course ? getCourseAnalytics(String(course.id)) : null;
-  const rawPending = course ? getPendingGrading(String(course.id)) : [];
+  const analytics = course ? apiAnalytics || {} : null;
+  const rawPending = [];
   const pending = rawPending.filter((p) => !gradedIds.has(p.id));
 
   const handleGradeClick = (item) => setGradingItem(item);
   const handleGradingClose = () => setGradingItem(null);
   const handleGradingSave = (item, grade, feedback) => {
-    setGrade(course.id, item.assignmentId, item.studentId, grade, feedback);
     setGradedIds((prev) => new Set(prev).add(item.id));
   };
 
@@ -1242,7 +1249,7 @@ export function TeacherCoursePage() {
       />
     );
   else if (activeTab === "students")
-    content = <StudentsTab courseId={course.id} />;
+    content = <StudentsTab course={course} />;
   else if (activeTab === "grading")
     content = <GradingTab pending={pending} onGradeClick={handleGradeClick} />;
   else if (activeTab === "analytics")

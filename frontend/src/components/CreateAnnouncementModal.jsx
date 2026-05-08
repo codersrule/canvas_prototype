@@ -1,8 +1,5 @@
 import React, { useState } from "react";
-import { addAnnouncement } from "../data/createdContentStore.js";
 import { api } from "../api/client.js";
-
-const USE_API = !!import.meta.env.VITE_API_URL;
 
 export function CreateAnnouncementModal({
   courseId,
@@ -29,17 +26,10 @@ export function CreateAnnouncementModal({
     setSaving(true);
 
     try {
-      if (USE_API) {
-        await api.createAnnouncement(effectiveCourseId, {
-          title: title.trim(),
-          content: content.trim() || undefined,
-        });
-      } else {
-        addAnnouncement(effectiveCourseId, {
-          title: title.trim(),
-          content: content.trim(),
-        });
-      }
+      await api.createAnnouncement(effectiveCourseId, {
+        title: title.trim(),
+        content: content.trim() || undefined,
+      });
 
       setToast(true);
       setTimeout(() => {

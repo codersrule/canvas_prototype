@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useRoute } from 'wouter'
-import { getCourseById } from '../data/courseDetails.js'
-import { getDiscussionById } from '../data/discussionsData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { api } from '../api/client.js'
 
-const USE_API = !!import.meta.env.VITE_API_URL
+const USE_API = true
 
 function DiscussionNotFound({ course }) {
   return (
@@ -177,72 +175,6 @@ function CommentThread({ comment, depth = 0, onReply }) {
   )
 }
 
-const INITIAL_COMMENTS = [
-  {
-    id: 1,
-    author: 'Alice Johnson',
-    authorInitials: 'AJ',
-    text: 'Great question! I found the list comprehension section in the slides really helpful. The nested loop example around slide 15 was a game changer for me.',
-    postedAt: '2025-10-23T10:30:00',
-    likes: 12,
-    replyCount: 2,
-    replies: [
-      {
-        id: 11,
-        author: 'Bob Martinez',
-        authorInitials: 'BM',
-        text: 'Same here! That example with the matrix transpose made it click.',
-        postedAt: '2025-10-23T14:00:00',
-        likes: 5,
-        replyCount: 0,
-        replies: [],
-      },
-      {
-        id: 12,
-        author: 'Carol Wang',
-        authorInitials: 'CW',
-        text: 'Thanks for pointing that out. Going to rewatch that part.',
-        postedAt: '2025-10-24T09:15:00',
-        likes: 3,
-        replyCount: 1,
-        replies: [
-          {
-            id: 121,
-            author: 'Alice Johnson',
-            authorInitials: 'AJ',
-            text: 'No problem! Happy to help.',
-            postedAt: '2025-10-24T11:00:00',
-            likes: 1,
-            replyCount: 0,
-            replies: [],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 2,
-    author: 'Peter Anteater',
-    authorInitials: 'PA',
-    text: 'Does anyone know if the office hours are still the same this week? I need help with the assignment due Friday.',
-    postedAt: '2025-10-25T08:00:00',
-    likes: 8,
-    replyCount: 1,
-    replies: [
-      {
-        id: 21,
-        author: 'Prof. Pattis',
-        authorInitials: 'PP',
-        text: 'Yes, office hours are unchanged: Tuesday 2-4pm, Thursday 3-5pm. See you there!',
-        postedAt: '2025-10-25T09:30:00',
-        likes: 15,
-        replyCount: 0,
-        replies: [],
-      },
-    ],
-  },
-]
-
 export function DiscussionDetailPage() {
   const { user } = useAuth()
   const [, params] = useRoute('/course/:courseId/discussion/:discussionId')
@@ -250,50 +182,44 @@ export function DiscussionDetailPage() {
   const discussionId = params?.discussionId
 
   const [sortBy, setSortBy] = useState('newest')
-  const [comments, setComments] = useState(INITIAL_COMMENTS)
+  const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
   const [apiCourse, setApiCourse] = useState(null)
+  const [apiDiscussion, setApiDiscussion] = useState(null)
   const [apiError, setApiError] = useState(null)
 
   useEffect(() => {
     if (!USE_API || !courseId) return
     setApiError(null)
-    api
-      .getCourse(courseId)
-      .then(setApiCourse)
+    Promise.all([api.getCourse(courseId), api.getDiscussion(courseId, discussionId)])
+      .then(([course, discussion]) => {
+        setApiCourse(course)
+        setApiDiscussion(discussion)
+        setComments(discussion.comments || [])
+      })
       .catch((e) => setApiError(e.message))
-  }, [USE_API, courseId])
+  }, [USE_API, courseId, discussionId])
 
   const { course, discussion } = useMemo(() => {
     if (!courseId) return { course: null, discussion: null }
     if (USE_API) {
       if (apiError || !apiCourse) return { course: apiError ? null : undefined, discussion: null }
-      const d = discussionId ? getDiscussionById(courseId, discussionId) : null
-      return { course: apiCourse, discussion: d }
+      return { course: apiCourse, discussion: apiDiscussion }
     }
-    const c = getCourseById(parseInt(courseId, 10))
-    const d = courseId && discussionId ? getDiscussionById(courseId, discussionId) : null
-    return { course: c, discussion: d }
-  }, [courseId, discussionId, USE_API, apiCourse, apiError])
+    return { course: null, discussion: null }
+  }, [courseId, USE_API, apiCourse, apiDiscussion, apiError])
 
   const sortedComments = [...comments].sort((a, b) => {
     if (sortBy === 'top') return (b.likes || 0) - (a.likes || 0)
     return new Date(b.postedAt) - new Date(a.postedAt)
   })
 
-  const handleAddComment = (e) => {
+  const handleAddComment = async (e) => {
     e.preventDefault()
     if (!newComment.trim()) return
-    const comment = {
-      id: Date.now(),
-      author: user?.name || 'You',
-      authorInitials: user?.initials || 'U',
+    const comment = await api.addDiscussionComment(courseId, discussionId, {
       text: newComment.trim(),
-      postedAt: new Date().toISOString(),
-      likes: 0,
-      replyCount: 0,
-      replies: [],
-    }
+    })
     setComments((prev) => [comment, ...prev])
     setNewComment('')
   }

@@ -1,15 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link, useRoute } from 'wouter'
-import { getCourseById } from '../data/courseDetails.js'
-import {
-  getEffectiveAssignmentForStudent,
-  setSubmission,
-} from '../data/submissionStore.js'
-import { getCreatedAssignments } from '../data/createdContentStore.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { api } from '../api/client.js'
 
-const USE_API = !!import.meta.env.VITE_API_URL
+const USE_API = true
 
 function AssignmentBreadcrumb({ course, assignment }) {
   return (
@@ -47,15 +41,11 @@ function SubmissionModal({ course, assignment, onClose, onSubmitted }) {
     setFileName(file ? file.name : null)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!text.trim() && !fileName) return
-    setSubmission(course.id, assignment.id, {
-      submitted: true,
-      submission: {
-        text: text.trim() || null,
-        fileName: fileName || null,
-        submittedAt: new Date().toISOString(),
-      },
+    await api.submitAssignment(course.id, assignment.id, {
+      text: text.trim() || null,
+      fileName: fileName || null,
     })
     onSubmitted()
     onClose()
@@ -267,12 +257,7 @@ function AssignmentNotFound({ course }) {
 
 function mergeApiAssignmentWithStores(apiAssignment, courseId, studentId) {
   if (!apiAssignment) return apiAssignment
-  return getEffectiveAssignmentForStudent(
-    courseId,
-    apiAssignment.id,
-    { ...apiAssignment, submitted: false, grade: null },
-    studentId
-  )
+  return apiAssignment
 }
 
 export function AssignmentPage() {
@@ -312,23 +297,12 @@ export function AssignmentPage() {
         ),
       }
       const baseAssignments = merged.assignments || []
-      const created = getCreatedAssignments(apiCourse.id)
-      const allAssignments = [...baseAssignments, ...created]
+      const allAssignments = baseAssignments
       const a = allAssignments.find((x) => String(x.id) === String(assignmentId))
-      const eff = a
-        ? getEffectiveAssignmentForStudent(courseId, assignmentId, a, studentId)
-        : null
+      const eff = a || null
       return { course: merged, assignment: a, effective: eff }
     }
-    const c = getCourseById(parseInt(courseId, 10))
-    const baseAssignments = c?.assignments || []
-    const created = getCreatedAssignments(c?.id || 0)
-    const allAssignments = [...baseAssignments, ...created]
-    const a = allAssignments.find((x) => String(x.id) === String(assignmentId))
-    const eff = a
-      ? getEffectiveAssignmentForStudent(courseId, assignmentId, a, studentId)
-      : null
-    return { course: c, assignment: a, effective: eff }
+    return { course: null, assignment: null, effective: null }
   }, [courseId, assignmentId, USE_API, apiCourse, apiError, studentId])
 
   const onSubmitted = useCallback(() => {

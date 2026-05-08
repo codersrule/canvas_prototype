@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'wouter'
-import { coursesData, todosData, announcementsData, userData } from '../data/classroomData.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { api } from '../api/client.js'
-
-const USE_API = !!import.meta.env.VITE_API_URL
 
 function CourseCard({ course }) {
   return (
@@ -138,20 +135,22 @@ function AnnouncementItem({ announcement, isLast }) {
 
 export function StudentDashboardPage() {
   const { user } = useAuth()
-  const [apiCourses, setApiCourses] = useState(null)
+  const [dashboard, setDashboard] = useState(null)
   const [apiError, setApiError] = useState(null)
 
   useEffect(() => {
-    if (!USE_API) return
     api
-      .getCourses()
-      .then(setApiCourses)
+      .getDashboard()
+      .then(setDashboard)
       .catch((e) => setApiError(e.message))
   }, [])
 
-  const courses = USE_API ? (apiCourses ?? coursesData) : coursesData
-  const displayName = user?.name ?? userData.name
-  const upcomingCount = todosData.length
+  const courses = dashboard?.courses || []
+  const todos = dashboard?.todos || []
+  const announcements = dashboard?.announcements || []
+  const displayName = user?.name ?? dashboard?.user?.name ?? 'Student'
+  const upcomingCount = todos.length
+  const semester = dashboard?.semester || ''
 
   return (
     <div className="p-6">
@@ -167,15 +166,18 @@ export function StudentDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">
-            My Courses - {userData.semester}
+            My Courses{semester ? ` - ${semester}` : ''}
           </h2>
           {apiError && (
             <p className="text-red-600 text-sm mb-4">{apiError}</p>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(Array.isArray(courses) ? courses : coursesData).map((course) => (
+            {courses.map((course) => (
               <CourseCard key={course.id} course={course} />
             ))}
+            {!courses.length && (
+              <p className="text-sm text-gray-500">No courses found.</p>
+            )}
           </div>
         </div>
 
@@ -199,13 +201,16 @@ export function StudentDashboardPage() {
               <h3 className="text-lg font-semibold text-gray-700">To Do</h3>
             </div>
             <div className="space-y-4">
-              {todosData.map((todo, index) => (
+              {todos.map((todo, index) => (
                 <TodoItem
                   key={todo.id}
                   todo={todo}
-                  isLast={index === todosData.length - 1}
+                  isLast={index === todos.length - 1}
                 />
               ))}
+              {!todos.length && (
+                <p className="text-sm text-gray-500">No assignments due.</p>
+              )}
             </div>
             <Link href="/calendar">
               <a className="block text-center text-gray-700 text-sm mt-4 hover:underline">
@@ -233,13 +238,16 @@ export function StudentDashboardPage() {
               <h3 className="text-lg font-semibold text-gray-700">Recent Announcements</h3>
             </div>
             <div className="space-y-4">
-              {announcementsData.map((a, index) => (
+              {announcements.map((a, index) => (
                 <AnnouncementItem
                   key={a.id}
                   announcement={a}
-                  isLast={index === announcementsData.length - 1}
+                  isLast={index === announcements.length - 1}
                 />
               ))}
+              {!announcements.length && (
+                <p className="text-sm text-gray-500">No announcements yet.</p>
+              )}
             </div>
             <Link href={Array.isArray(courses) && courses.length > 0 ? `/course/${courses[0].id}/announcements` : '/courses'}>
               <a className="block text-center text-gray-700 text-sm mt-4 hover:underline">
